@@ -37,11 +37,17 @@ const Register = () => {
       {
         loading: "Deploying profile onto server...",
         success: (response) => {
-          const { data } = response;
-          localStorage.setItem("token", data.token);
-          localStorage.setItem("userId", data.user.id);
-          navigate("/chat");
-          return "Account successfully created!.";
+          const token = response?.data?.token || response?.token;
+          const userId = response?.data?.user?.id || response?.user?.id;
+          
+          if (token && userId) {
+            localStorage.setItem("token", token);
+            localStorage.setItem("userId", userId);
+            navigate("/chat");
+            return "Account successfully created!";
+          } else {
+            throw new Error("Missing credentials payload.");
+          }
         },
         error: (err) => {
           setLoading(false);

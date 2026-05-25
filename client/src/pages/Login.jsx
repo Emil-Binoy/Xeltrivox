@@ -22,11 +22,17 @@ const Login = () => {
     toast.promise(loginPromise, {
       loading: "Connecting to your account",
       success: (response) => {
-        const { data } = response;
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("userId", data.user.id);
-        navigate("/chat");
-        return "Connection established! Welcome back.";
+        const token = response?.data?.token || response?.token;
+        const userId = response?.data?.user?.id || response?.user?.id;
+
+        if (token && userId) {
+          localStorage.setItem("token", token);
+          localStorage.setItem("userId", userId);
+          navigate("/chat");
+          return "Connection established! Welcome back.";
+        } else {
+          throw new Error("Missing credentials payload.");
+        }
       },
       error: (err) => {
         setLoading(false);

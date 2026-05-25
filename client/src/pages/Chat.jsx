@@ -1,12 +1,25 @@
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import ChatBox from "../components/ChatBox";
+import socket from "../socket";
 
 const Chat = () => {
   const [selectedConversation, setSelectedConversation] = useState(null);
   
-  // 🔥 FIXED: Change default to true so the sidebar is ALWAYS visible on first load on phones
   const [isMobileOpen, setIsMobileOpen] = useState(true);
+
+  useEffect(() => {
+    const currentUserId = localStorage.getItem("userId");
+    
+    if (currentUserId) {
+      socket.emit("join", currentUserId);
+      console.log("Transmitted terminal authentication join signal for:", currentUserId);
+    }
+
+    return () => {
+      // Optional: you can add socket disconnect or leave handlers if needed
+    };
+  }, []);
 
   return (
     <div className="w-screen h-screen flex bg-slate-100 dark:bg-[#070a12] text-slate-900 dark:text-white overflow-hidden relative">
