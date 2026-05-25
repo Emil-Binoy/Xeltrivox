@@ -54,6 +54,13 @@ io.on("connection", (socket) => {
       io.to(receiverSocketId).emit("receiveMessage",data)
    }
   })
+
+  socket.on("deleteMessage",(data)=>{
+   const receiverSocketId=onlineUsers[data.receiverId]
+   if(receiverSocketId){
+      io.to(receiverSocketId).emit("messageDeleted",{messageId:data.messageId})
+   }
+  })
 });
 
 const PORT = process.env.PORT || 5000;

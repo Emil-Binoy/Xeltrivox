@@ -1,23 +1,20 @@
-import { useEffect, useState, useRef } from "react"; // Added useRef here
+import { useEffect, useState, useRef } from "react";
 import socket from "../socket";
 import api from "../services/api";
 import MessageInput from "./MessageInput";
-import { FiCpu } from "react-icons/fi";
+import { FiCpu, FiTrash2 } from "react-icons/fi";
+import toast from "react-hot-toast";
 
 const ChatBox = ({ selectedConversation }) => {
   const [messages, setMessages] = useState([]);
-  
-  // Create a reference pointer for the bottom of the chat container
+  const [onlineUsers, setOnlineUsers] = useState([]);
   const messagesEndRef = useRef(null);
-
   const currentUserId = localStorage.getItem("userId");
 
-  // Helper function to handle the smooth scrolling movement
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // 1. Fetch old messages when active conversation shifts
   useEffect(() => {
     if (!selectedConversation) return;
 
@@ -34,12 +31,16 @@ const ChatBox = ({ selectedConversation }) => {
     getMessages();
   }, [selectedConversation]);
 
-  // 2. Real-time live synchronization stream listener
   useEffect(() => {
-    if (!selectedConversation) return;
+    socket.on("onlineUsers", (users) => {
+      setOnlineUsers(users);
+    });
 
     const handleIncomingMessage = (message) => {
-      if (message.conversationId === selectedConversation.id) {
+      if (
+        selectedConversation &&
+        message.conversationId === selectedConversation.id
+      ) {
         setMessages((prev) => [...prev, message]);
       }
     };
@@ -47,18 +48,37 @@ const ChatBox = ({ selectedConversation }) => {
     socket.on("receiveMessage", handleIncomingMessage);
 
     return () => {
+      socket.off("onlineUsers");
       socket.off("receiveMessage", handleIncomingMessage);
     };
   }, [selectedConversation]);
 
-  // 3. Trigger scroll anchor every single time the messages array values change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      await api.delete(`/messages/${messageId}`);
+      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+      socket.emit("deleteMessage", {
+        messageId,
+        receiverId: selectedConversation.selectedUser.id,
+      });
+
+      toast.success("Message unsent");
+    } catch (error) {
+      console.log(error);
+      toast.error("Could not unsend message");
+    }
+  };
+
+  const isSelectedUserOnline = selectedConversation?.selectedUser?.id
+    ? onlineUsers.includes(selectedConversation.selectedUser.id)
+    : false;
+
   return (
     <div className="flex-1 h-full flex flex-col bg-[#070a12]/30 relative">
-      {/* Futuristic Grid Accent overlay */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f29370a_1px,transparent_1px),linear-gradient(to_bottom,#1f29370a_1px,transparent_1px)] bg-size-[4rem_4rem] pointer-events-none" />
 
       {!selectedConversation ? (
@@ -70,17 +90,28 @@ const ChatBox = ({ selectedConversation }) => {
             Awaiting Terminal Link
           </h2>
           <p className="text-sm text-slate-500 max-w-sm mt-1">
-            Select a user from the terminal matrix sidebar to open up a messaging stream channel.
+            Select a user from the terminal matrix sidebar to open up a
+            messaging stream channel.
           </p>
         </div>
       ) : (
         <>
           {/* Top Panel Bar */}
           <div className="p-5 bg-[#0d1321]/40 border-b border-slate-800/60 backdrop-blur-md flex items-center gap-3 relative z-10">
-            <div className="w-2 h-2 rounded-full bg-cyan-400 shadow-lg shadow-cyan-400/50 animate-ping" />
+            {/* UPDATED: Glow dot changes color & structure dynamically based on online status */}
+            <div
+              className={`w-2 h-2 rounded-full shadow-lg transition-all duration-300 ${
+                isSelectedUserOnline
+                  ? "bg-cyan-400 shadow-cyan-400/50 animate-ping"
+                  : "bg-slate-600 shadow-transparent"
+              }`}
+            />
+
             <div>
               <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase block">
-                Active Stream
+                {isSelectedUserOnline
+                  ? "Active Stream // Online"
+                  : "Disconnected // Offline"}
               </span>
               <h2 className="text-sm font-semibold text-white tracking-wide">
                 {selectedConversation.selectedUser?.name || "User"}
@@ -94,46 +125,61 @@ const ChatBox = ({ selectedConversation }) => {
           {/* Chat log feed */}
           <div className="flex-1 overflow-y-auto p-6 space-y-3 relative z-10 custom-scrollbar">
             {messages.map((msg) => {
-              const isMe = msg.senderId === currentUserId || msg.sender?.id === currentUserId;
+              const isMe =
+                msg.senderId === currentUserId ||
+                msg.sender?.id === currentUserId;
 
               return (
-                <div 
-                  key={msg.id} 
+                <div
+                  key={msg.id}
                   className={`flex flex-col ${isMe ? "items-end" : "items-start"} w-full`}
                 >
                   {/* Message Header Name block */}
                   <span className="text-[10px] font-bold tracking-wider text-slate-500 mb-1 px-1.5 uppercase">
                     {isMe ? "You" : msg.sender?.name || "User"}
                   </span>
-                  
+
                   {/* Dynamic Message Bubble Container styles */}
-                  <div 
+                  <div
                     className={`max-w-md p-3.5 rounded-2xl text-slate-200 text-sm leading-relaxed shadow-md shadow-black/40 border transition-all duration-300 ${
-                      isMe 
-                        ? "bg-linear-to-br from-cyan-600 to-indigo-600 border-cyan-500/30 rounded-tr-none ml-auto" 
+                      isMe
+                        ? "bg-linear-to-br from-cyan-600 to-indigo-600 border-cyan-500/30 rounded-tr-none ml-auto"
                         : "bg-slate-900/80 border-slate-800 rounded-tl-none mr-auto"
                     }`}
                   >
                     <p>{msg.text}</p>
                     {msg.createdAt && (
-                      <p className={`text-[10px] mt-1 ${isMe ? "text-cyan-200/60" : "text-slate-500"}`}>
-                        {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      <p
+                        className={`text-[10px] mt-1 ${isMe ? "text-cyan-200/60" : "text-slate-500"}`}
+                      >
+                        {new Date(msg.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </p>
                     )}
                   </div>
+                  {isMe && (
+                    <button
+                      onClick={() => handleDeleteMessage(msg.id)}
+                      className="opacity-0 group-hover/msg:opacity-100 p-2 text-slate-500 hover:text-red-400 bg-slate-900/60 border border-slate-800 rounded-lg backdrop-blur-md transition-all duration-200 cursor-pointer focus:outline-none"
+                      title="Unsend Message"
+                    >
+                      <FiTrash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               );
             })}
-            
+
             {/* Invisible anchor div at the very bottom of the list array map loop */}
             <div ref={messagesEndRef} />
           </div>
+          <div className="relative z-10">
+            <MessageInput selectedConversation={selectedConversation} />
+          </div>
         </>
       )}
-
-      <div className="relative z-10">
-        <MessageInput selectedConversation={selectedConversation} />
-      </div>
     </div>
   );
 };

@@ -32,7 +32,7 @@ const sendMessage = async (req, res) => {
     const onlineUsers = req.app.get("onlineUsers");
 
     const participants = await prisma.conversationParticipant.findMany({
-      where: { conversationId }
+      where: { conversationId },
     });
 
     // Send to everyone connected to this conversation loop
@@ -80,4 +80,37 @@ const getMessages = async (req, res) => {
   }
 };
 
-module.exports = { sendMessage, getMessages };
+const deleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const currentUserId = req.user.id; 
+
+    const message = await prisma.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      return res.status(404).json({ message: "Message not found" });
+    }
+
+    if (message.senderId !== currentUserId) {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized to delete this message" });
+    }
+
+    await prisma.message.delete({
+      where: { id: messageId },
+    });
+
+    res.status(200).json({
+      message: "Message deleted successfully",
+      messageId,
+      conversationId: message.conversationId,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { sendMessage, getMessages, deleteMessage };
