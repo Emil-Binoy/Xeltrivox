@@ -32,6 +32,10 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => {
       try {
         const { data } = await api.get(`/messages/${selectedConversation.id}`);
         setMessages(data);
+        socket.emit("markAsRead", {
+          conversationId: selectedConversation.id,
+          senderId: selectedConversation.selectedUser.id, 
+        });
       } catch (error) {
         console.log(error);
       }

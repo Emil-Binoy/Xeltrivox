@@ -12,9 +12,10 @@ const MessageInput = ({ selectedConversation }) => {
 
     try {
       setIsSending(true);
-      await api.post("/messages", {
-        conversationId: selectedConversation.id,
-        text,
+      const { data } = await api.post("/messages", { conversationId: selectedConversation.id, text });
+      socket.emit("sendMessage", {
+        ...data,
+        receiverId: selectedConversation.selectedUser.id
       });
       setText("");
     } catch (error) {

@@ -181,9 +181,7 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
                 <span className="text-[10px] font-semibold text-indigo-500/80 dark:text-cyan-400/70 lowercase">
                   {user.name}
                 </span>
-                <p className="text-xs text-slate-400 dark:text-slate-400/70 truncate group-hover:text-slate-600 transition-colors">
-                  {user.email}
-                </p>
+                
               </div>
 
               {unreadCount > 0 && (

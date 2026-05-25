@@ -51,17 +51,22 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", async (data) => {
     const receiverSocketId = onlineUsers[data.receiverId];
 
-    if (receiverSocketId) {
-      io.to(receiverSocketId).emit("receiveMessage", data);
+    const initialStatus = receiverSocketId ? "DELIVERED" : "SENT";
+
+    try {
+      const receiverSocketId = onlineUsers[data.receiverId];
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("receiveMessage", data);
+      }
+    } catch (err) {
+      console.log("Socket message status sync error:", err);
     }
   });
 
-  socket.on("markAsRead", (data) => {
-    const senderSocketId = onlineUsers[data.senderId];
+  socket.on("markAsRead", ({ conversationId, senderId }) => {
+    const senderSocketId = onlineUsers[senderId];
     if (senderSocketId) {
-      io.to(senderSocketId).emit("messagesRead", {
-        conversationId: data.conversationId,
-      });
+      io.to(senderSocketId).emit("messagesRead", { conversationId });
     }
   });
 
