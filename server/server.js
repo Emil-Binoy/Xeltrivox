@@ -27,40 +27,52 @@ app.use("/api/users", userRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/messages", messageRoutes);
 
-const onlineUsers={}
+const onlineUsers = {};
 
-app.set("io",io)
-app.set("onlineUsers",onlineUsers)
+app.set("io", io);
+app.set("onlineUsers", onlineUsers);
 
 io.on("connection", (socket) => {
-  socket.on("join",(userId)=>{
-   onlineUsers[userId]=socket.id
-   io.emit("onlineUsers",Object.keys(onlineUsers))
-   console.log("user joined:", userId);
-  })
-
-  socket.on("disconnect", () => {
-    for(let userId in onlineUsers){
-      if(onlineUsers[userId]===socket.id){
-         delete onlineUsers[userId]
-      }
-    }
-    io.emit("onlineUsers",Object.keys(onlineUsers))
+  socket.on("join", (userId) => {
+    onlineUsers[userId] = socket.id;
+    io.emit("onlineUsers", Object.keys(onlineUsers));
+    console.log("user joined:", userId);
   });
 
-  socket.on("sendMessage",(data)=>{
-   const receiverSocketId=onlineUsers[data.receiverId]
-   if(receiverSocketId){
-      io.to(receiverSocketId).emit("receiveMessage",data)
-   }
-  })
+  socket.on("disconnect", () => {
+    for (let userId in onlineUsers) {
+      if (onlineUsers[userId] === socket.id) {
+        delete onlineUsers[userId];
+      }
+    }
+    io.emit("onlineUsers", Object.keys(onlineUsers));
+  });
 
-  socket.on("deleteMessage",(data)=>{
-   const receiverSocketId=onlineUsers[data.receiverId]
-   if(receiverSocketId){
-      io.to(receiverSocketId).emit("messageDeleted",{messageId:data.messageId})
-   }
-  })
+  socket.on("sendMessage", async (data) => {
+    const receiverSocketId = onlineUsers[data.receiverId];
+
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("receiveMessage", data);
+    }
+  });
+
+  socket.on("markAsRead", (data) => {
+    const senderSocketId = onlineUsers[data.senderId];
+    if (senderSocketId) {
+      io.to(senderSocketId).emit("messagesRead", {
+        conversationId: data.conversationId,
+      });
+    }
+  });
+
+  socket.on("deleteMessage", (data) => {
+    const receiverSocketId = onlineUsers[data.receiverId];
+    if (receiverSocketId) {
+      io.to(receiverSocketId).emit("messageDeleted", {
+        messageId: data.messageId,
+      });
+    }
+  });
 });
 
 const PORT = process.env.PORT || 5000;

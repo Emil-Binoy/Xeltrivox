@@ -40,17 +40,20 @@ model ConversationParticipant {
   @@unique([userId, conversationId])
 }
 
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
 model Message {
-  id String @id @default(uuid())
-
-  text String
-
+  id             String        @id @default(uuid()) 
+  text           String
   senderId       String
   conversationId String
+  status         MessageStatus @default(SENT) 
+  createdAt      DateTime      @default(now())      
 
-  sender User @relation(fields: [senderId], references: [id])
-
+  sender       User         @relation(fields: [senderId], references: [id])
   conversation Conversation @relation(fields: [conversationId], references: [id])
-
-  createdAt DateTime @default(now())
 }

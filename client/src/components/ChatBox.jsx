@@ -2,10 +2,16 @@ import { useEffect, useState, useRef } from "react";
 import socket from "../socket";
 import api from "../services/api";
 import MessageInput from "./MessageInput";
-import { FiCpu, FiTrash2, FiMoreVertical, FiMenu } from "react-icons/fi"; // 🔥 FIXED: Re-imported FiMenu icon
+import {
+  FiCpu,
+  FiTrash2,
+  FiMoreVertical,
+  FiMenu,
+  FiCheck,
+} from "react-icons/fi";
 import toast from "react-hot-toast";
 
-const ChatBox = ({ selectedConversation, setIsMobileOpen }) => { // 🔥 FIXED: Accepts state properties safely
+const ChatBox = ({ selectedConversation, setIsMobileOpen }) => {
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const messagesEndRef = useRef(null);
@@ -33,11 +39,29 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => { // 🔥 FIXED: 
     getMessages();
   }, [selectedConversation]);
 
+  // 🔥 FIXED: Combined all socket listeners into one clean stream flow
   useEffect(() => {
+    // 1. Online tracker listener
     socket.on("onlineUsers", (users) => {
       setOnlineUsers(users);
     });
 
+    // 2. Read receipts blue ticks listener
+    const handleMessagesRead = (data) => {
+      if (
+        selectedConversation &&
+        data.conversationId === selectedConversation.id
+      ) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.status !== "READ" ? { ...msg, status: "READ" } : msg,
+          ),
+        );
+      }
+    };
+    socket.on("messagesRead", handleMessagesRead);
+
+    // 3. New live message listener
     const handleIncomingMessage = (message) => {
       if (
         selectedConversation &&
@@ -46,16 +70,18 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => { // 🔥 FIXED: 
         setMessages((prev) => [...prev, message]);
       }
     };
+    socket.on("receiveMessage", handleIncomingMessage);
 
+    // 4. Unsend message handler
     const handleDeletedMessage = (data) => {
       setMessages((prev) => prev.filter((msg) => msg.id !== data.messageId));
     };
-
-    socket.on("receiveMessage", handleIncomingMessage);
     socket.on("messageDeleted", handleDeletedMessage);
 
+    // ✨ FIXED CLEANUP: Single unified function running gracefully at unmount
     return () => {
       socket.off("onlineUsers");
+      socket.off("messagesRead", handleMessagesRead);
       socket.off("receiveMessage", handleIncomingMessage);
       socket.off("messageDeleted", handleDeletedMessage);
     };
@@ -66,7 +92,9 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => { // 🔥 FIXED: 
   }, [messages]);
 
   const handleDeleteMessage = async (messageId) => {
-    const confirmUnsend = window.confirm("Are you sure you want to unsend this message?");
+    const confirmUnsend = window.confirm(
+      "Are you sure you want to unsend this message?",
+    );
     if (!confirmUnsend) return;
 
     try {
@@ -95,18 +123,18 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => { // 🔥 FIXED: 
 
       {!selectedConversation ? (
         <div className="flex-1 flex flex-col items-center justify-center relative z-10 p-8 text-center animate-pulse">
-          
-          {/* 🔥 FIXED: Restored mobile top-bar header wrapper for onboarding/landing states */}
           <div className="md:hidden absolute top-0 inset-x-0 p-5 bg-white dark:bg-[#0d1321]/40 border-b border-slate-200 dark:border-slate-800/60 flex items-center">
-            <button 
+            <button
               onClick={() => setIsMobileOpen(true)}
               className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-cyan-400 cursor-pointer"
             >
               <FiMenu className="w-5 h-5" />
             </button>
-            <span className="text-sm font-semibold ml-3 text-slate-700 dark:text-slate-300">Open Channels</span>
+            <span className="text-sm font-semibold ml-3 text-slate-700 dark:text-slate-300">
+              Open Channels
+            </span>
           </div>
-          
+
           <div className="w-16 h-16 rounded-2xl bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 flex items-center justify-center mb-4 text-indigo-600 dark:text-cyan-400 shadow-xl">
             <FiCpu className="w-8 h-8" />
           </div>
@@ -114,15 +142,14 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => { // 🔥 FIXED: 
             Awaiting Terminal Link
           </h2>
           <p className="text-sm text-slate-500 max-w-sm mt-1">
-            Open the sidebar channel directory panel array to map an active live messaging sync channel.
+            Open the sidebar channel directory panel array to map an active live
+            messaging sync channel.
           </p>
         </div>
       ) : (
         <>
           {/* Top Panel Bar */}
           <div className="p-5 bg-white dark:bg-[#0d1321]/40 border-b border-slate-200 dark:border-slate-800/60 backdrop-blur-md flex items-center gap-3 relative z-10">
-            
-            {/* 🔥 FIXED: Restored the responsive hamburger menu trigger button right here */}
             <button
               onClick={() => setIsMobileOpen(true)}
               className="md:hidden p-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-cyan-400 focus:outline-none cursor-pointer shrink-0"
@@ -139,7 +166,9 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => { // 🔥 FIXED: 
             />
             <div>
               <span className="text-[10px] font-bold tracking-widest text-slate-400 dark:text-slate-500 uppercase block">
-                {isSelectedUserOnline ? "Active Stream // Online" : "Disconnected // Offline"}
+                {isSelectedUserOnline
+                  ? "Active Stream // Online"
+                  : "Disconnected // Offline"}
               </span>
               <h2 className="text-sm font-semibold text-slate-800 dark:text-white tracking-wide">
                 {selectedConversation.selectedUser?.name || "User"}
@@ -150,7 +179,9 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => { // 🔥 FIXED: 
           {/* Chat log feed */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 relative z-10 custom-scrollbar">
             {messages.map((msg) => {
-              const isMe = msg.senderId === currentUserId || msg.sender?.id === currentUserId;
+              const isMe =
+                msg.senderId === currentUserId ||
+                msg.sender?.id === currentUserId;
               const isMenuOpen = activeMenuMessageId === msg.id;
 
               return (
@@ -162,7 +193,9 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => { // 🔥 FIXED: 
                     {isMe ? "You" : msg.sender?.name || "User"}
                   </span>
 
-                  <div className={`flex items-center gap-1.5 max-w-[85%] md:max-w-md ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+                  <div
+                    className={`flex items-center gap-1.5 max-w-[85%] md:max-w-md ${isMe ? "flex-row-reverse" : "flex-row"}`}
+                  >
                     <div
                       className={`p-3.5 rounded-2xl text-sm leading-relaxed shadow-xs border transition-all duration-300 select-none ${
                         isMe
@@ -171,23 +204,51 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => { // 🔥 FIXED: 
                       }`}
                     >
                       <p>{msg.text}</p>
-                      {msg.createdAt && (
-                        <p className={`text-[10px] mt-1 ${isMe ? "text-indigo-200/60 dark:text-cyan-200/60" : "text-slate-400 dark:text-slate-500"}`}>
-                          {new Date(msg.createdAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      )}
+
+                      <div className="flex items-center justify-end gap-1 mt-1">
+                        {msg.createdAt && (
+                          <p
+                            className={`text-[10px] ${isMe ? "text-indigo-200/60 dark:text-cyan-200/60" : "text-slate-400 dark:text-slate-500"}`}
+                          >
+                            {new Date(msg.createdAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        )}
+
+                        {isMe && (
+                          <div className="flex items-center ml-1">
+                            {msg.status === "READ" ? (
+                              <div className="flex -space-x-1.5 text-cyan-400 dark:text-cyan-300">
+                                <FiCheck className="w-3.5 h-3.5" />
+                                <FiCheck className="w-3.5 h-3.5" />
+                              </div>
+                            ) : msg.status === "DELIVERED" ||
+                              isSelectedUserOnline ? (
+                              <div className="flex -space-x-1.5 text-slate-400 dark:text-slate-500">
+                                <FiCheck className="w-3.5 h-3.5" />
+                                <FiCheck className="w-3.5 h-3.5" />
+                              </div>
+                            ) : (
+                              <FiCheck className="w-3.5 h-3.5 text-slate-400/60 dark:text-slate-500/40" />
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     {isMe && (
                       <div className="flex items-center gap-1 relative shrink-0">
                         <button
                           type="button"
-                          onClick={() => setActiveMenuMessageId(isMenuOpen ? null : msg.id)}
+                          onClick={() =>
+                            setActiveMenuMessageId(isMenuOpen ? null : msg.id)
+                          }
                           className={`p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 transition-all cursor-pointer focus:outline-none ${
-                            isMenuOpen ? "opacity-100" : "opacity-100 md:opacity-0 md:group-hover/msg:opacity-100"
+                            isMenuOpen
+                              ? "opacity-100"
+                              : "opacity-100 md:opacity-0 md:group-hover/msg:opacity-100"
                           }`}
                         >
                           <FiMoreVertical className="w-3.5 h-3.5" />
@@ -197,8 +258,8 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => { // 🔥 FIXED: 
                           type="button"
                           onClick={() => handleDeleteMessage(msg.id)}
                           className={`p-2 text-red-500 dark:text-red-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm transition-all duration-200 cursor-pointer focus:outline-none shrink-0 ${
-                            isMenuOpen 
-                              ? "flex scale-100 opacity-100" 
+                            isMenuOpen
+                              ? "flex scale-100 opacity-100"
                               : "hidden md:flex md:scale-90 md:opacity-0 md:group-hover/msg:scale-100 md:group-hover/msg:opacity-100"
                           }`}
                           title="Unsend Message"

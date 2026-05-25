@@ -6,6 +6,8 @@ import socket from "../socket";
 function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
   const [users, setUsers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [unreadCounts, setUnreadCounts] = useState({});
+  const [activeUserId, setActiveUserId] = useState(null);
 
   // Manage Dark/Light theme state
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
@@ -35,18 +37,61 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
     socket.on("onlineUsers", (users) => {
       setOnlineUsers(users);
     });
+
+    // 🔥 UPDATED: Rearranges the sidebar list when a new live message hits the client
+    const handleLiveMessage = (message) => {
+      const senderId = message.senderId;
+
+      // 1. Increment unread counter if chat isn't currently focused
+      if (senderId !== activeUserId) {
+        setUnreadCounts((prev) => ({
+          ...prev,
+          [senderId]: (prev[senderId] || 0) + 1,
+        }));
+      }
+
+      // 2. 🔥 Move the sender's row straight to the top of the layout list array
+      setUsers((prevUsers) => {
+        const targetUser = prevUsers.find((u) => u.id === senderId);
+        if (!targetUser) return prevUsers; // Security check fallback
+        
+        const remainingUsers = prevUsers.filter((u) => u.id !== senderId);
+        return [targetUser, ...remainingUsers]; // Pushes target user directly to index 0
+      });
+    };
+
+    socket.on("receiveMessage", handleLiveMessage);
+
     return () => {
       socket.off("onlineUsers");
+      socket.off("receiveMessage", handleLiveMessage);
     };
-  }, []);
+  }, [activeUserId]);
 
   const handleUserClick = async (user) => {
     try {
       const { data } = await api.post("/chat", {
         userId: user.id,
       });
+      
       setSelectedConversation({ ...data, selectedUser: user });
-      if (setIsMobileOpen) setIsMobileOpen(false); // Auto-close sidebar panel drawer on mobile selection
+      setActiveUserId(user.id);
+
+      // Reset unread counter
+      setUnreadCounts((prev) => ({
+        ...prev,
+        [user.id]: 0,
+      }));
+
+      // 🔥 UPDATED: Move the person you just clicked to the top as well
+      setUsers((prevUsers) => {
+        const targetUser = prevUsers.find((u) => u.id === user.id);
+        if (!targetUser) return prevUsers;
+        const remainingUsers = prevUsers.filter((u) => u.id !== user.id);
+        return [targetUser, ...remainingUsers];
+      });
+
+      if (setIsMobileOpen) setIsMobileOpen(false); 
     } catch (error) {
       console.log(error);
     }
@@ -94,26 +139,30 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
       {/* User Directory */}
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1.5 custom-scrollbar">
         {users.map((user) => {
-          // 🔥 FIXED: Check if this specific mapping user loop exists in the active state array
           const isUserOnline = onlineUsers.includes(user.id);
+          const unreadCount = unreadCounts[user.id] || 0;
 
           return (
             <div
               key={user.id}
               onClick={() => handleUserClick(user)}
-              className="group relative p-3.5 rounded-xl border border-transparent hover:border-slate-200 dark:hover:border-slate-800/80 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-all duration-300 cursor-pointer flex items-center gap-3 overflow-hidden"
+              className={`group relative p-3.5 rounded-xl border transition-all duration-300 cursor-pointer flex items-center gap-3 overflow-hidden ${
+                activeUserId === user.id 
+                  ? "border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-900/40" 
+                  : "border-transparent bg-transparent hover:bg-slate-50/60 dark:hover:bg-slate-900/20"
+              }`}
             >
-              <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-linear-to-b from-cyan-400 to-indigo-500 opacity-0 group-hover:opacity-100 transition-all duration-300" />
+              <div className={`absolute left-0 top-0 bottom-0 w-0.5 bg-linear-to-b from-cyan-400 to-indigo-500 transition-all duration-300 ${
+                activeUserId === user.id ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+              }`} />
 
-              {/* Avatar Frame Container */}
               <div className="relative shrink-0">
                 <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-linear-to-br dark:from-slate-800 dark:to-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/50 group-hover:border-cyan-500/30 transition-all">
                   {user.name.charAt(0).toUpperCase()}
                 </div>
                 
-                {/* 🔥 FIXED STATUS INDICATOR PIN: Renders green/cyan pulse glow badge if user evaluates online */}
                 {isUserOnline && (
-                  <span className="animate-pulse absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 dark:bg-cyan-400 border-2 border-white dark:border-[#0d1321] shadow-xs" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 dark:bg-cyan-400 border-2 border-white dark:border-[#0d1321] shadow-xs" />
                 )}
               </div>
 
@@ -125,6 +174,12 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
                   {user.email}
                 </p>
               </div>
+
+              {unreadCount > 0 && (
+                <div className="shrink-0 min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full text-[10px] font-bold text-white bg-indigo-600 dark:bg-cyan-500 shadow-sm shadow-indigo-500/20 dark:shadow-cyan-400/20 animate-bounce">
+                  {unreadCount}
+                </div>
+              )}
             </div>
           );
         })}

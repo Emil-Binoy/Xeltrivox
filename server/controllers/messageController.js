@@ -54,36 +54,54 @@ const sendMessage = async (req, res) => {
 const getMessages = async (req, res) => {
   try {
     const { conversationId } = req.params;
-    const message = await prisma.message.findMany({
+    const currentUserId = req.user.id;
+
+    await prisma.message.updateMany({
       where: {
         conversationId,
+        senderId: { not: currentUserId },
+        status: { not: "READ" },
       },
-      include: {
-        sender: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: "asc",
-      },
+      data: { status: "READ" },
     });
 
-    res.status(200).json(message);
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
+    const messages = await prisma.message.findMany({
+      where: { conversationId },
+      include: {
+        sender: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+      orderBy: { createdAt: "asc" },
     });
+
+    const io = req.app.get("io");
+    const onlineUsers = req.app.get("onlineUsers");
+
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: { participants: true },
+    });
+
+    const recipient = conversation.participants.find(
+      (p) => p.userId !== currentUserId,
+    );
+    if (recipient && onlineUsers[recipient.userId]) {
+      io.to(onlineUsers[recipient.userId]).emit("messagesRead", {
+        conversationId,
+      });
+    }
+
+    res.status(200).json(messages);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };
 
 const deleteMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
-    const currentUserId = req.user.id; 
+    const currentUserId = req.user.id;
 
     const message = await prisma.message.findUnique({
       where: { id: messageId },
