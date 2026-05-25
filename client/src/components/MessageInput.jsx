@@ -19,7 +19,7 @@ const MessageInput = ({ selectedConversation }) => {
 
   return (
     // UPDATED: Blends the container background seamlessly into both light and dark mode environments
-    <div className="p-4 bg-linear-to-t from-white via-white to-transparent dark:from-[#070a12]/80 dark:to-transparent border-t border-slate-200 dark:border-slate-800/40 backdrop-blur-md">
+    <div className="p-4 bg-transparent dark:bg-linear-to-t dark:from-[#070a12]/90 dark:to-transparent border-t border-slate-200 dark:border-slate-800/40 backdrop-blur-md">
       <form 
         onSubmit={sendMessage} 
         className="max-w-4xl mx-auto flex items-center gap-2 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-1.5 focus-within:border-indigo-500/50 dark:focus-within:border-cyan-500/50 focus-within:shadow-[0_0_15px_rgba(99,102,241,0.1)] dark:focus-within:shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all duration-300"
