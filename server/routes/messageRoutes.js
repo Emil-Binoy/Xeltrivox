@@ -6,6 +6,6 @@ const { sendMessage,getMessages,deleteMessage } = require("../controllers/messag
 
 router.post("/",protect,sendMessage)
 router.get("/:conversationId",protect,getMessages)
-router.delete("/:messageId", protectRoute, deleteMessage);
+router.delete("/:messageId", protect, deleteMessage);
 
 module.exports=router
