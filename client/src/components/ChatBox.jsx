@@ -65,6 +65,8 @@ const ChatBox = ({ selectedConversation }) => {
   }, [messages]);
 
   const handleDeleteMessage = async (messageId) => {
+    const confirmUnsend = window.confirm("Are you sure you want to unsend this message?");
+    if (!confirmUnsend) return; 
     try {
       await api.delete(`/messages/${messageId}`);
       setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
