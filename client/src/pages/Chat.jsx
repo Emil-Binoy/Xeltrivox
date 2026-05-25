@@ -5,20 +5,20 @@ import ChatBox from "../components/ChatBox";
 const Chat = () => {
   const [selectedConversation, setSelectedConversation] = useState(null);
   
-  // Responsive sidebar display toggle state tracker variable
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  // 🔥 FIXED: Change default to true so the sidebar is ALWAYS visible on first load on phones
+  const [isMobileOpen, setIsMobileOpen] = useState(true);
 
   return (
     <div className="w-screen h-screen flex bg-slate-100 dark:bg-[#070a12] text-slate-900 dark:text-white overflow-hidden relative">
       
-      {/* 1. Sidebar Panel Grid Section with Mobile Overlay Drawer attributes */}
+      {/* 1. Sidebar Panel Grid Section */}
       <Sidebar 
         setSelectedConversation={setSelectedConversation} 
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
       />
 
-      {/* Mobile backdrop drawer dark shade layout layer mask block click closer anchor */}
+      {/* Mobile backdrop shade layout layer mask — closes sidebar if clicked */}
       {isMobileOpen && (
         <div 
           onClick={() => setIsMobileOpen(false)}
@@ -26,7 +26,7 @@ const Chat = () => {
         />
       )}
 
-      {/* 2. Main Window Target Text Box Logger viewport frame */}
+      {/* 2. Main Window Target Text Box Viewport */}
       <ChatBox 
         selectedConversation={selectedConversation} 
         setIsMobileOpen={setIsMobileOpen}
