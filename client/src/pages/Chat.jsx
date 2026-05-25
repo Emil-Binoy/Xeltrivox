@@ -1,4 +1,4 @@
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import ChatBox from "../components/ChatBox";
 import socket from "../socket";
@@ -6,8 +6,10 @@ import socket from "../socket";
 const Chat = () => {
   const [selectedConversation, setSelectedConversation] = useState(null);
   
+  // Prioritize sidebar list directory display index layout on initial phone load-in
   const [isMobileOpen, setIsMobileOpen] = useState(true);
 
+  // Core socket registration tracking link handshake stream
   useEffect(() => {
     const currentUserId = localStorage.getItem("userId");
     
@@ -15,10 +17,6 @@ const Chat = () => {
       socket.emit("join", currentUserId);
       console.log("Transmitted terminal authentication join signal for:", currentUserId);
     }
-
-    return () => {
-      // Optional: you can add socket disconnect or leave handlers if needed
-    };
   }, []);
 
   return (
@@ -31,7 +29,7 @@ const Chat = () => {
         setIsMobileOpen={setIsMobileOpen}
       />
 
-      {/* Mobile backdrop shade layout layer mask — closes sidebar if clicked */}
+      {/* Mobile backdrop shade overlay mask layer — closes drawer layout cleanly on tap click */}
       {isMobileOpen && (
         <div 
           onClick={() => setIsMobileOpen(false)}
@@ -40,8 +38,10 @@ const Chat = () => {
       )}
 
       {/* 2. Main Window Target Text Box Viewport */}
+      {/* 🔥 FIXED: Explicitly passing down both parameters so the menu button tracks cleanly */}
       <ChatBox 
         selectedConversation={selectedConversation} 
+        isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
       />
     </div>
