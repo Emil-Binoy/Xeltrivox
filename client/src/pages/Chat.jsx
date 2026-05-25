@@ -1,31 +1,36 @@
-import React from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import ChatBox from "../components/ChatBox";
-import socket from "../socket";
 
 const Chat = () => {
   const [selectedConversation, setSelectedConversation] = useState(null);
-  useEffect(() => {
-    const userId = localStorage.getItem("userId");
-
-    if (userId) {
-      socket.emit("join", userId);
-    }
-
-    socket.on("receiveMessage", (message) => {
-      console.log("new message:", message);
-    });
-
-    return () => {
-      socket.off("receiveMessage");
-    };
-  }, []);
+  
+  // Responsive sidebar display toggle state tracker variable
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-linear-to-br from-[#0b0f19] via-[#111827] to-[#070a12] text-slate-100 font-sans antialiased selection:bg-cyan-500/30">
-      <Sidebar setSelectedConversation={setSelectedConversation} />
-      <ChatBox selectedConversation={selectedConversation} />
+    <div className="w-screen h-screen flex bg-slate-100 dark:bg-[#070a12] text-slate-900 dark:text-white overflow-hidden relative">
+      
+      {/* 1. Sidebar Panel Grid Section with Mobile Overlay Drawer attributes */}
+      <Sidebar 
+        setSelectedConversation={setSelectedConversation} 
+        isMobileOpen={isMobileOpen}
+        setIsMobileOpen={setIsMobileOpen}
+      />
+
+      {/* Mobile backdrop drawer dark shade layout layer mask block click closer anchor */}
+      {isMobileOpen && (
+        <div 
+          onClick={() => setIsMobileOpen(false)}
+          className="md:hidden fixed inset-0 bg-black/40 backdrop-blur-xs z-30 transition-opacity duration-300"
+        />
+      )}
+
+      {/* 2. Main Window Target Text Box Logger viewport frame */}
+      <ChatBox 
+        selectedConversation={selectedConversation} 
+        setIsMobileOpen={setIsMobileOpen}
+      />
     </div>
   );
 };

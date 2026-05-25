@@ -16,3 +16,5 @@
     background: rgba(6, 182, 212, 0.3);
   }
 }
+
+@variant dark (&:where(.dark, .dark *));
