@@ -45,11 +45,18 @@ const ChatBox = ({ selectedConversation }) => {
       }
     };
 
+    // ADDED: Remember to catch the deleted signal if your backend sends it
+    const handleDeletedMessage = (data) => {
+      setMessages((prev) => prev.filter((msg) => msg.id !== data.messageId));
+    };
+
     socket.on("receiveMessage", handleIncomingMessage);
+    socket.on("messageDeleted", handleDeletedMessage);
 
     return () => {
       socket.off("onlineUsers");
       socket.off("receiveMessage", handleIncomingMessage);
+      socket.off("messageDeleted", handleDeletedMessage);
     };
   }, [selectedConversation]);
 
@@ -98,7 +105,6 @@ const ChatBox = ({ selectedConversation }) => {
         <>
           {/* Top Panel Bar */}
           <div className="p-5 bg-[#0d1321]/40 border-b border-slate-800/60 backdrop-blur-md flex items-center gap-3 relative z-10">
-            {/* UPDATED: Glow dot changes color & structure dynamically based on online status */}
             <div
               className={`w-2 h-2 rounded-full shadow-lg transition-all duration-300 ${
                 isSelectedUserOnline
@@ -132,49 +138,54 @@ const ChatBox = ({ selectedConversation }) => {
               return (
                 <div
                   key={msg.id}
-                  className={`flex flex-col ${isMe ? "items-end" : "items-start"} w-full`}
+                  className={`flex flex-col ${isMe ? "items-end" : "items-start"} w-full group/msg`}
                 >
                   {/* Message Header Name block */}
                   <span className="text-[10px] font-bold tracking-wider text-slate-500 mb-1 px-1.5 uppercase">
                     {isMe ? "You" : msg.sender?.name || "User"}
                   </span>
 
-                  {/* Dynamic Message Bubble Container styles */}
-                  <div
-                    className={`max-w-md p-3.5 rounded-2xl text-slate-200 text-sm leading-relaxed shadow-md shadow-black/40 border transition-all duration-300 ${
-                      isMe
-                        ? "bg-linear-to-br from-cyan-600 to-indigo-600 border-cyan-500/30 rounded-tr-none ml-auto"
-                        : "bg-slate-900/80 border-slate-800 rounded-tl-none mr-auto"
-                    }`}
-                  >
-                    <p>{msg.text}</p>
-                    {msg.createdAt && (
-                      <p
-                        className={`text-[10px] mt-1 ${isMe ? "text-cyan-200/60" : "text-slate-500"}`}
+                  {/* FIXED: Added a row wrapper to structure the bubble and trash icon side-by-side */}
+                  <div className={`flex items-center gap-2 max-w-md ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+                    
+                    {/* Dynamic Message Bubble Container styles */}
+                    <div
+                      className={`p-3.5 rounded-2xl text-slate-200 text-sm leading-relaxed shadow-md shadow-black/40 border transition-all duration-300 ${
+                        isMe
+                          ? "bg-linear-to-br from-cyan-600 to-indigo-600 border-cyan-500/30 rounded-tr-none"
+                          : "bg-slate-900/80 border-slate-800 rounded-tl-none"
+                      }`}
+                    >
+                      <p>{msg.text}</p>
+                      {msg.createdAt && (
+                        <p className={`text-[10px] mt-1 ${isMe ? "text-cyan-200/60" : "text-slate-500"}`}>
+                          {new Date(msg.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* FIXED: The trash icon is now perfectly aligned inside the hover group */}
+                    {isMe && (
+                      <button
+                        onClick={() => handleDeleteMessage(msg.id)}
+                        className="opacity-0 group-hover/msg:opacity-100 p-2 text-slate-500 hover:text-red-400 bg-slate-900/60 border border-slate-800 rounded-lg backdrop-blur-md transition-all duration-200 cursor-pointer focus:outline-none shrink-0"
+                        title="Unsend Message"
                       >
-                        {new Date(msg.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
+                        <FiTrash2 className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
-                  {isMe && (
-                    <button
-                      onClick={() => handleDeleteMessage(msg.id)}
-                      className="opacity-0 group-hover/msg:opacity-100 p-2 text-slate-500 hover:text-red-400 bg-slate-900/60 border border-slate-800 rounded-lg backdrop-blur-md transition-all duration-200 cursor-pointer focus:outline-none"
-                      title="Unsend Message"
-                    >
-                      <FiTrash2 className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+
                 </div>
               );
             })}
 
-            {/* Invisible anchor div at the very bottom of the list array map loop */}
             <div ref={messagesEndRef} />
           </div>
+          
           <div className="relative z-10">
             <MessageInput selectedConversation={selectedConversation} />
           </div>
