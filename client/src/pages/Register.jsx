@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { FiLock, FiMail, FiUser, FiEye, FiEyeOff, FiUserPlus } from "react-icons/fi";
+import {
+  FiLock,
+  FiMail,
+  FiUser,
+  FiEye,
+  FiEyeOff,
+  FiUserPlus,
+} from "react-icons/fi";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
 import toast from "react-hot-toast"; // Imported toast system
@@ -7,6 +14,7 @@ import toast from "react-hot-toast"; // Imported toast system
 const Register = () => {
   const navigate = useNavigate();
 
+  const [username, setUsername] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,36 +25,48 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
 
-    const registerPromise = api.post("auth/register", { name, email, password });
-
-    toast.promise(registerPromise, {
-      loading: "Deploying profile onto server...",
-      success: (response) => {
-        const { data } = response;
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("userId", data.user.id);
-        navigate("/chat");
-        return "Account successfully created!.";
-      },
-      error: (err) => {
-        setLoading(false);
-        return err.response?.data?.message || "Registration failed. Please check entry fields.";
-      },
-    }, {
-      style: {
-        background: "#0d1321",
-        color: "#cbd5e1",
-        border: "1px solid #1e293b",
-      },
-      success: { iconTheme: { primary: "#6366f1", secondary: "#0d1321" } },
-      error: { iconTheme: { primary: "#ef4444", secondary: "#0d1321" } },
+    const registerPromise = api.post("auth/register", {
+      name,
+      username,
+      email,
+      password,
     });
+
+    toast.promise(
+      registerPromise,
+      {
+        loading: "Deploying profile onto server...",
+        success: (response) => {
+          const { data } = response;
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("userId", data.user.id);
+          navigate("/chat");
+          return "Account successfully created!.";
+        },
+        error: (err) => {
+          setLoading(false);
+          return (
+            err.response?.data?.message ||
+            "Registration failed. Please check entry fields."
+          );
+        },
+      },
+      {
+        style: {
+          background: "#0d1321",
+          color: "#cbd5e1",
+          border: "1px solid #1e293b",
+        },
+        success: { iconTheme: { primary: "#6366f1", secondary: "#0d1321" } },
+        error: { iconTheme: { primary: "#ef4444", secondary: "#0d1321" } },
+      },
+    );
   };
 
   return (
     <div className="min-h-screen w-screen flex items-center justify-center bg-linear-to-br from-[#0b0f19] via-[#111827] to-[#070a12] text-slate-100 font-sans antialiased p-4 relative overflow-hidden">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#1f29370a_1px,transparent_1px),linear-gradient(to_bottom,#1f29370a_1px,transparent_1px)] bg-size-[4rem_4rem] pointer-events-none" />
-      
+
       <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none" />
 
@@ -76,6 +96,27 @@ const Register = () => {
                 placeholder="John Doe"
                 className="w-full bg-transparent text-slate-200 placeholder-slate-600 text-sm py-3 px-3 focus:outline-none"
                 disabled={loading}
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold tracking-widest text-slate-400 uppercase px-1">
+              Unique Username (User ID)
+            </label>
+            <div className="relative flex items-center bg-slate-900/90 border border-slate-800 rounded-xl focus-within:border-indigo-500/50 focus-within:shadow-[0_0_15px_rgba(99,102,241,0.15)] transition-all duration-300">
+              <span className="pl-4 text-slate-500 text-sm font-semibold">
+                @
+              </span>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) =>
+                  setUsername(e.target.value.replace(/\s+/g, ""))
+                } // Prevents spaces in handles
+                placeholder="username"
+                className="w-full bg-transparent text-slate-200 placeholder-slate-600 text-sm py-3 px-2 focus:outline-none"
                 required
               />
             </div>
@@ -123,7 +164,11 @@ const Register = () => {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3.5 p-1 text-slate-500 hover:text-indigo-400 transition-colors focus:outline-none"
               >
-                {showPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                {showPassword ? (
+                  <FiEyeOff className="w-4 h-4" />
+                ) : (
+                  <FiEye className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>

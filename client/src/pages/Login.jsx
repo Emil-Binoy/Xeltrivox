@@ -6,7 +6,7 @@ import toast from "react-hot-toast"; // Imported toast system
 
 const Login = () => {
   const navigate = useNavigate();
-
+  const [identifier, setIdentifier] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -17,7 +17,7 @@ const Login = () => {
     setLoading(true);
 
     // Promise-based toast automatically switches from loading spinner to success/error info
-    const loginPromise = api.post("auth/login", { email, password });
+    const loginPromise = api.post("auth/login", { identifier, password });
 
     toast.promise(loginPromise, {
       loading: "Connecting to your account",
@@ -64,17 +64,17 @@ const Login = () => {
         <form onSubmit={login} className="space-y-5">
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold tracking-widest text-slate-400 uppercase px-1">
-              Email Address
+              Email or Username
             </label>
             <div className="relative flex items-center bg-slate-900/90 border border-slate-800 rounded-xl focus-within:border-cyan-500/50 focus-within:shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all duration-300">
               <span className="pl-4 text-slate-500">
                 <FiMail className="w-4 h-4" />
               </span>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                placeholder="you@example.com or username"
                 className="w-full bg-transparent text-slate-200 placeholder-slate-600 text-sm py-3 px-3 focus:outline-none"
                 disabled={loading}
                 required
