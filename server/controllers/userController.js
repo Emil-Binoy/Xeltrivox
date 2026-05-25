@@ -9,6 +9,7 @@ const getProfile=async(req,res)=>{
             select:{
                 id:true,
                 name:true,
+                username: true,
                 email:true,
                 profilePic:true,
                 createdAt:true
@@ -34,6 +35,7 @@ const getUsers=async(req,res)=>{
             select:{
                 id:true,
                 name:true,
+                username: true,
                 email:true,
                 profilePic:true
             }
