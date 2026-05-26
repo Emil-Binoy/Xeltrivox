@@ -1,6 +1,7 @@
 import { useState } from "react";
 import api from "../services/api";
 import { FiSend, FiLoader } from "react-icons/fi";
+import socket from "../socket";
 
 const MessageInput = ({ selectedConversation }) => {
   const [text, setText] = useState("");

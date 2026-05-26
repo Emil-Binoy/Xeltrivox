@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import api from "../services/api";
 import { FiUsers, FiLayers, FiSun, FiMoon } from "react-icons/fi";
 import socket from "../socket";
+import { SidebarSkeleton } from "./Skeleton";
 
 function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
   const [users, setUsers] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [unreadCounts, setUnreadCounts] = useState({});
   const [activeUserId, setActiveUserId] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Manage Dark/Light theme state
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
@@ -24,10 +26,13 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
   useEffect(() => {
     const getUsers = async () => {
       try {
+        setIsLoading(true);
         const { data } = await api.get("/users");
         setUsers(data);
       } catch (error) {
         console.log(error);
+      } finally {
+        setIsLoading(false);
       }
     };
     getUsers();
@@ -142,56 +147,63 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
 
       {/* User Directory */}
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-1.5 custom-scrollbar">
-        {users.map((user) => {
-          const isUserOnline = onlineUsers.includes(user.id);
-          const unreadCount = unreadCounts[user.id] || 0;
+        {isLoading ? (
+          <SidebarSkeleton /> // 🔥 ADDED: Shows shimmers while loading
+        ) : (
+          users.map((user) => {
+            const isUserOnline = onlineUsers.includes(user.id);
+            const unreadCount = unreadCounts[user.id] || 0;
+            return users.map((user) => {
+              const isUserOnline = onlineUsers.includes(user.id);
+              const unreadCount = unreadCounts[user.id] || 0;
 
-          return (
-            <div
-              key={user.id}
-              onClick={() => handleUserClick(user)}
-              className={`group relative p-3.5 rounded-xl border transition-all duration-300 cursor-pointer flex items-center gap-3 overflow-hidden ${
-                activeUserId === user.id
-                  ? "border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-900/40"
-                  : "border-transparent bg-transparent hover:bg-slate-50/60 dark:hover:bg-slate-900/20"
-              }`}
-            >
-              <div
-                className={`absolute left-0 top-0 bottom-0 w-0.5 bg-linear-to-b from-cyan-400 to-indigo-500 transition-all duration-300 ${
-                  activeUserId === user.id
-                    ? "opacity-100"
-                    : "opacity-0 group-hover:opacity-100"
-                }`}
-              />
+              return (
+                <div
+                  key={user.id}
+                  onClick={() => handleUserClick(user)}
+                  className={`group relative p-3.5 rounded-xl border transition-all duration-300 cursor-pointer flex items-center gap-3 overflow-hidden ${
+                    activeUserId === user.id
+                      ? "border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-900/40"
+                      : "border-transparent bg-transparent hover:bg-slate-50/60 dark:hover:bg-slate-900/20"
+                  }`}
+                >
+                  <div
+                    className={`absolute left-0 top-0 bottom-0 w-0.5 bg-linear-to-b from-cyan-400 to-indigo-500 transition-all duration-300 ${
+                      activeUserId === user.id
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100"
+                    }`}
+                  />
 
-              <div className="relative shrink-0">
-                <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-linear-to-br dark:from-slate-800 dark:to-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/50 group-hover:border-cyan-500/30 transition-all">
-                  {user.name.charAt(0).toUpperCase()}
+                  <div className="relative shrink-0">
+                    <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-linear-to-br dark:from-slate-800 dark:to-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/50 group-hover:border-cyan-500/30 transition-all">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+
+                    {isUserOnline && (
+                      <span className="animate-pulse absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 dark:bg-cyan-400 border-2 border-white dark:border-[#0d1321] shadow-xs" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-sm text-slate-700 dark:text-slate-200 group-hover:text-black dark:group-hover:text-white transition-colors truncate">
+                      {user.username}
+                    </h3>
+                    <span className="text-[10px] font-semibold text-indigo-500/80 dark:text-cyan-400/70 lowercase">
+                      {user.name}
+                    </span>
+                  </div>
+
+                  {unreadCount > 0 && (
+                    <div className="shrink-0 min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full text-[10px] font-bold text-white bg-indigo-600 dark:bg-cyan-500 shadow-sm shadow-indigo-500/20 dark:shadow-cyan-400/20 animate-bounce">
+                      {unreadCount}
+                    </div>
+                  )}
                 </div>
-
-                {isUserOnline && (
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 dark:bg-cyan-400 border-2 border-white dark:border-[#0d1321] shadow-xs" />
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-sm text-slate-700 dark:text-slate-200 group-hover:text-black dark:group-hover:text-white transition-colors truncate">
-                  {user.username}
-                </h3>
-                <span className="text-[10px] font-semibold text-indigo-500/80 dark:text-cyan-400/70 lowercase">
-                  {user.name}
-                </span>
-                
-              </div>
-
-              {unreadCount > 0 && (
-                <div className="shrink-0 min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full text-[10px] font-bold text-white bg-indigo-600 dark:bg-cyan-500 shadow-sm shadow-indigo-500/20 dark:shadow-cyan-400/20 animate-bounce">
-                  {unreadCount}
-                </div>
-              )}
-            </div>
-          );
-        })}
+              );
+            });
+          })
+        )}
       </div>
     </div>
   );
