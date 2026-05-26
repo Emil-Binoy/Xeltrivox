@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
-import { FiUsers, FiSun, FiMoon } from "react-icons/fi";
+import { FiUsers, FiSun, FiMoon, FiSettings, FiLogOut } from "react-icons/fi";
 import socket from "../socket";
 import { SidebarSkeleton } from "./Skeleton";
-import xeltrivox from "../assets/Xeltrivox.png"
+import xeltrivox from "../assets/Xeltrivox.png";
+import Avatar from "./Avatar";
+import ProfileModal from "./ProfileModal";
 
 function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
   const [users, setUsers] = useState([]);
@@ -11,6 +13,8 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
   const [unreadCounts, setUnreadCounts] = useState({});
   const [activeUserId, setActiveUserId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Manage Dark/Light theme state
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
@@ -23,6 +27,19 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
     }
     localStorage.setItem("theme", theme);
   }, [theme]);
+
+  // Load owns profile data
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      try {
+        const { data } = await api.get("/users/profile");
+        setCurrentUser(data);
+      } catch (error) {
+        console.log("Error loading profile:", error);
+      }
+    };
+    getCurrentUser();
+  }, []);
 
   useEffect(() => {
     const getUsers = async () => {
@@ -43,6 +60,32 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
     socket.on("onlineUsers", (users) => {
       setOnlineUsers(users);
     });
+
+    const handleProfileUpdate = (updatedUser) => {
+      // Sync own profile changes
+      if (updatedUser.id === localStorage.getItem("userId")) {
+        setCurrentUser(updatedUser);
+      }
+      // Sync other users profile changes
+      setUsers((prevUsers) =>
+        prevUsers.map((u) => (u.id === updatedUser.id ? { ...u, ...updatedUser } : u))
+      );
+      // Sync currently selected partner
+      if (activeUserId === updatedUser.id) {
+        setSelectedConversation((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            selectedUser: {
+              ...prev.selectedUser,
+              ...updatedUser
+            }
+          };
+        });
+      }
+    };
+
+    socket.on("userProfileUpdated", handleProfileUpdate);
 
     const handleLiveMessage = (message) => {
       const senderId = message.senderId;
@@ -67,6 +110,7 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
 
     return () => {
       socket.off("onlineUsers");
+      socket.off("userProfileUpdated", handleProfileUpdate);
       socket.off("receiveMessage", handleLiveMessage);
     };
   }, [activeUserId]);
@@ -95,6 +139,15 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
       if (setIsMobileOpen) setIsMobileOpen(false);
     } catch (error) {
       console.log(error);
+    }
+  };
+
+  const handleLogout = () => {
+    const confirmLogout = window.confirm("Are you sure you want to log out of Xeltrivox?");
+    if (confirmLogout) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      window.location.href = "/login";
     }
   };
 
@@ -140,7 +193,6 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
         {isLoading ? (
           <SidebarSkeleton />
         ) : (
-          /* ✨ FIXED: Removed duplicate nested loop from your snippet */
           users.map((user) => {
             const isUserOnline = onlineUsers.includes(user.id);
             const unreadCount = unreadCounts[user.id] || 0;
@@ -149,7 +201,7 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
               <div
                 key={user.id}
                 onClick={() => handleUserClick(user)}
-                className={`group relative p-3.5 rounded-xl border transition-all duration-300 cursor-pointer flex items-center gap-3 overflow-hidden ${
+                className={`group relative p-3 rounded-xl border transition-all duration-300 cursor-pointer flex items-center gap-3 overflow-hidden ${
                   activeUserId === user.id
                     ? "border-slate-200 dark:border-slate-800/80 bg-slate-50 dark:bg-slate-900/40"
                     : "border-transparent bg-transparent hover:bg-slate-50/60 dark:hover:bg-slate-900/20"
@@ -161,23 +213,23 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
                   }`}
                 />
 
-                <div className="relative shrink-0">
-                  <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-linear-to-br dark:from-slate-800 dark:to-slate-700 flex items-center justify-center font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700/50 group-hover:border-cyan-500/30 transition-all">
-                    {user.name.charAt(0).toUpperCase()}
-                  </div>
-
-                  {isUserOnline && (
-                    <span className="animate-pulse absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 dark:bg-cyan-400 border-2 border-white dark:border-[#0d1321] shadow-xs" />
-                  )}
-                </div>
+                <Avatar user={user} size="md" isOnline={isUserOnline} showOnlineStatus={true} />
 
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-sm text-slate-700 dark:text-slate-200 group-hover:text-black dark:group-hover:text-white transition-colors truncate">
+                  <h3 className="font-semibold text-sm text-slate-700 dark:text-slate-200 group-hover:text-black dark:group-hover:text-white transition-colors truncate">
                     @{user.username}
                   </h3>
-                  <span className="text-[10px] font-semibold text-indigo-500/80 dark:text-cyan-400/70 lowercase block">
-                    {user.name}
-                  </span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-[10px] font-semibold text-indigo-500/80 dark:text-cyan-400/70 lowercase truncate max-w-[80px] shrink-0">
+                      {user.name}
+                    </span>
+                    {user.status && user.status !== "Available" && (
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium truncate flex items-center gap-1 min-w-0">
+                        <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700 shrink-0" />
+                        <span className="truncate">{user.status}</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {unreadCount > 0 && (
@@ -190,6 +242,59 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
           })
         )}
       </div>
+
+      {/* Current User Footnote Section */}
+      <div className="p-4 border-t border-slate-200 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-900/30 backdrop-blur-md flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Avatar user={currentUser} size="md" />
+          <div className="min-w-0">
+            <h3 className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">
+              {currentUser?.name || "Loading..."}
+            </h3>
+            <div className="flex items-center gap-1 min-w-0">
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                currentUser?.status === "Busy" ? "bg-red-500" :
+                currentUser?.status === "Away" ? "bg-amber-500" :
+                currentUser?.status === "Do Not Disturb" ? "bg-purple-500" :
+                "bg-emerald-500"
+              }`} />
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold truncate leading-none pt-0.5">
+                {currentUser?.status || "Available"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={() => setIsProfileModalOpen(true)}
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-cyan-400 cursor-pointer focus:outline-none transition-all"
+            title="Edit Profile"
+          >
+            <FiSettings className="w-3.5 h-3.5" />
+          </button>
+          
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-xl bg-slate-100 hover:bg-red-50 dark:bg-slate-900 dark:hover:bg-red-950/30 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 cursor-pointer focus:outline-none transition-all"
+            title="Log Out"
+          >
+            <FiLogOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Render the profile editing modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        currentUser={currentUser}
+        onProfileUpdated={(updated) => {
+          setCurrentUser(updated);
+          // Auto update in sidebar channels list too
+          setUsers(prev => prev.map(u => u.id === updated.id ? { ...u, ...updated } : u));
+        }}
+      />
     </div>
   );
 }
