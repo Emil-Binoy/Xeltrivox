@@ -1,24 +1,48 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import api from "../services/api";
-import { FiSend, FiLoader } from "react-icons/fi";
+import { FiSend, FiLoader, FiSmile } from "react-icons/fi";
 import socket from "../socket";
+import EmojiPicker from "emoji-picker-react";
 
 const MessageInput = ({ selectedConversation }) => {
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const pickerRef = useRef(null);
+
+  // Close the emoji picker when clicking anywhere outside of it
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (pickerRef.current && !pickerRef.current.contains(event.target)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleEmojiClick = (emojiData) => {
+    setText((prev) => prev + emojiData.emoji);
+  };
 
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!text.trim() || !selectedConversation) return;
+    if (!text.trim() || !selectedConversation || isSending) return;
 
     try {
       setIsSending(true);
-      const { data } = await api.post("/messages", { conversationId: selectedConversation.id, text });
+      const { data } = await api.post("/messages", { 
+        conversationId: selectedConversation.id, 
+        text 
+      });
+      
       socket.emit("sendMessage", {
         ...data,
         receiverId: selectedConversation.selectedUser.id
       });
+      
       setText("");
+      setShowEmojiPicker(false);
     } catch (error) {
       console.log(error);
     } finally {
@@ -27,32 +51,55 @@ const MessageInput = ({ selectedConversation }) => {
   };
 
   return (
-    <div className="p-4 bg-transparent dark:bg-linear-to-t dark:from-[#070a12]/90 dark:to-transparent border-t border-slate-200 dark:border-slate-800/40 backdrop-blur-md">
-      <form
-        onSubmit={sendMessage}
-        className="max-w-4xl mx-auto flex items-center gap-2 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 rounded-xl p-1.5 focus-within:border-indigo-500/50 dark:focus-within:border-cyan-500/50 focus-within:shadow-[0_0_15px_rgba(99,102,241,0.1)] dark:focus-within:shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all duration-300"
-      >
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder={
-            isSending
-              ? "Transmitting interface signal data..."
-              : "Type a message or transmit signal..."
-          }
-          className="bg-transparent text-slate-800 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 text-sm py-2 px-3 flex-1 focus:outline-none disabled:opacity-50"
-          disabled={isSending} 
-        />
+    <div className="relative w-full" ref={pickerRef}>
+      
+      {/* FLOATING EMOJI PICKER WINDOW */}
+      {showEmojiPicker && (
+        <div className="absolute bottom-full left-0 mb-3 z-50 shadow-2xl animate-fade-in">
+          <EmojiPicker
+            onEmojiClick={handleEmojiClick}
+            autoFocusSearch={false}
+            theme="auto" // Automatically matches system dark/light modes
+            width={320}
+            height={400}
+          />
+        </div>
+      )}
+
+      {/* Input Row Container */}
+      <form onSubmit={sendMessage} className="flex items-center gap-2">
+        <div className="flex-1 flex items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 shadow-inner focus-within:border-indigo-500 dark:focus-within:border-cyan-500 transition-colors">
+          
+          {/* Emoji Toggle Action Button */}
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker((prev) => !prev)}
+            className={`p-1.5 rounded-lg text-slate-400 hover:text-indigo-500 dark:hover:text-cyan-400 cursor-pointer transition-colors focus:outline-none shrink-0 ${
+              showEmojiPicker ? "text-indigo-500 dark:text-cyan-400" : ""
+            }`}
+          >
+            <FiSmile className="w-5 h-5" />
+          </button>
+
+          <input
+            type="text"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            disabled={isSending}
+            placeholder="Type a message..."
+            className="w-full p-3.5 bg-transparent text-sm focus:outline-none text-slate-800 dark:text-slate-100 disabled:opacity-60"
+          />
+        </div>
 
         <button
           type="submit"
-          disabled={!text.trim() || isSending} 
-          className="bg-linear-to-r from-indigo-600 to-indigo-700 dark:from-cyan-500 dark:to-indigo-600 disabled:bg-slate-100 disabled:from-transparent disabled:to-transparent dark:disabled:from-slate-800 dark:disabled:to-slate-800 text-white disabled:text-slate-400 dark:disabled:text-slate-600 p-2.5 rounded-lg shadow-sm active:scale-95 transition-all duration-200 flex items-center justify-center cursor-pointer disabled:cursor-not-allowed"
+          disabled={isSending || !text.trim()}
+          className="p-3.5 bg-indigo-600 dark:bg-cyan-500 text-white rounded-xl hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-md shadow-indigo-500/20 disabled:opacity-50 disabled:scale-100 shrink-0"
         >
           {isSending ? (
-            <FiLoader className="w-4 h-4 animate-spin text-indigo-500 dark:text-cyan-400" />
+            <FiLoader className="w-5 h-5 animate-spin" />
           ) : (
-            <FiSend className="w-4 h-4" />
+            <FiSend className="w-5 h-5" />
           )}
         </button>
       </form>
