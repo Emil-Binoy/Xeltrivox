@@ -6,6 +6,7 @@ import { SidebarSkeleton } from "./Skeleton";
 import xeltrivox from "../assets/Xeltrivox.png";
 import Avatar from "./Avatar";
 import ProfileModal from "./ProfileModal";
+import toast from "react-hot-toast";
 
 function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
   const [users, setUsers] = useState([]);
@@ -139,6 +140,7 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
       if (setIsMobileOpen) setIsMobileOpen(false);
     } catch (error) {
       console.log(error);
+      toast.error(error.response?.data?.message || "Failed to establish chat stream");
     }
   };
 

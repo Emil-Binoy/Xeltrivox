@@ -44,6 +44,9 @@ export const AVATAR_PRESETS = {
   }
 };
 
+// 🔵 The one and only founder of Xeltrivox
+const FOUNDER_USERNAME = "emil_binoy";
+
 const Avatar = ({ 
   user, 
   size = "md", 
@@ -55,6 +58,7 @@ const Avatar = ({
   const profilePic = user?.profilePic;
   const name = user?.name || "?";
   const initials = name.charAt(0).toUpperCase();
+  const isFounder = user?.username === FOUNDER_USERNAME;
 
   // Determine size classes
   const sizeClasses = {
@@ -70,6 +74,14 @@ const Avatar = ({
     lg: "w-4 h-4 -bottom-0.5 -right-0.5 border-2.5",
     xl: "w-5 h-5 bottom-0 right-0 border-3"
   }[size] || "w-3 h-3 -bottom-0.5 -right-0.5 border-2";
+
+  // Founder badge sizing per avatar size
+  const founderBadgeClasses = {
+    sm: "w-3.5 h-3.5 -bottom-0.5 -left-0.5",
+    md: "w-4 h-4 -bottom-0.5 -left-0.5",
+    lg: "w-5 h-5 -bottom-0.5 -left-0.5",
+    xl: "w-7 h-7 bottom-0 left-0"
+  }[size] || "w-4 h-4 -bottom-0.5 -left-0.5";
 
   // Check if profilePic is a preset gradient or custom URL
   const isGradient = profilePic && profilePic.startsWith("gradient-");
@@ -116,22 +128,25 @@ const Avatar = ({
   return (
     <div 
       onClick={onClick}
-      className={`relative shrink-0 flex items-center justify-center overflow-hidden cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300 ${sizeClasses} ${onClick ? "cursor-pointer" : "cursor-default"}`}
+      className={`relative shrink-0 flex items-center justify-center overflow-visible cursor-pointer hover:scale-105 active:scale-95 transition-all duration-300 ${sizeClasses} ${onClick ? "cursor-pointer" : "cursor-default"}`}
     >
-      {renderContent()}
+      {/* Clip the avatar content to its rounded shape */}
+      <div className="absolute inset-0 overflow-hidden rounded-[inherit]">
+        {renderContent()}
 
-      {/* Hidden fallback div in case image fails to load */}
-      {profilePic && !isGradient && (
-        <div
-          style={{ 
-            background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)",
-            display: "none"
-          }}
-          className={`w-full h-full absolute inset-0 items-center justify-center font-bold text-white shadow-inner select-none ${className}`}
-        >
-          {initials}
-        </div>
-      )}
+        {/* Hidden fallback div in case image fails to load */}
+        {profilePic && !isGradient && (
+          <div
+            style={{ 
+              background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)",
+              display: "none"
+            }}
+            className={`w-full h-full absolute inset-0 items-center justify-center font-bold text-white shadow-inner select-none ${className}`}
+          >
+            {initials}
+          </div>
+        )}
+      </div>
 
       {/* Online/Offline Badge Indicator Overlay */}
       {showOnlineStatus && (
@@ -145,6 +160,40 @@ const Avatar = ({
             }
           `}
         />
+      )}
+
+      {/* 🔵 Founder Verified Badge — Emil Binoy Only */}
+      {isFounder && (
+        <div
+          className={`absolute ${founderBadgeClasses} z-20`}
+          title="Xeltrivox Founder"
+        >
+          <svg
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-full h-full drop-shadow-[0_0_4px_rgba(59,130,246,0.8)]"
+          >
+            {/* Outer badge circle */}
+            <circle cx="10" cy="10" r="10" fill="url(#founderGrad)" />
+            {/* Inner ring */}
+            <circle cx="10" cy="10" r="8.5" fill="none" stroke="white" strokeWidth="0.8" strokeOpacity="0.4" />
+            {/* Check mark */}
+            <path
+              d="M6.5 10.2L8.8 12.5L13.5 7.5"
+              stroke="white"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <defs>
+              <linearGradient id="founderGrad" x1="0" y1="0" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#3b82f6" />
+                <stop offset="100%" stopColor="#1d4ed8" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
       )}
     </div>
   );
