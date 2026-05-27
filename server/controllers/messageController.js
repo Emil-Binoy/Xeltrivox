@@ -1,4 +1,11 @@
 const prisma = require("../prisma/client");
+const webpush = require("web-push");
+
+webpush.setVapidDetails(
+  "mailto:test@example.com",
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+);
 
 const sendMessage = async (req, res) => {
   try {
@@ -24,6 +31,7 @@ const sendMessage = async (req, res) => {
             id: true,
             name: true,
             email: true,
+            profilePic: true,
           },
         },
         replyTo: {
@@ -46,13 +54,33 @@ const sendMessage = async (req, res) => {
       where: { conversationId },
     });
 
-    // Send to everyone connected to this conversation loop
-    participants.forEach((participant) => {
+    for (const participant of participants) {
       const userSocketId = onlineUsers[participant.userId];
       if (userSocketId) {
         io.to(userSocketId).emit("receiveMessage", message);
       }
-    });
+
+      if (participant.userId !== senderId) {
+        try {
+          const recipient = await prisma.user.findUnique({
+            where: { id: participant.userId },
+            select: { pushSubscription: true }
+          });
+          
+          if (recipient && recipient.pushSubscription) {
+            const payload = JSON.stringify({
+              title: message.sender.name,
+              body: message.text,
+              icon: message.sender.profilePic || "/favicon.ico",
+              url: "/"
+            });
+            await webpush.sendNotification(recipient.pushSubscription, payload);
+          }
+        } catch (pushErr) {
+          console.log("Push notification error:", pushErr.message);
+        }
+      }
+    }
 
     res.status(201).json(message);
   } catch (error) {

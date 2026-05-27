@@ -23,10 +23,50 @@ export const useSidebar = (setSelectedConversation, setIsMobileOpen) => {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  useEffect(() => {
-    if ("Notification" in window && Notification.permission !== "granted") {
-      Notification.requestPermission();
+  function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
     }
+    return outputArray;
+  }
+
+  useEffect(() => {
+    const initPush = async () => {
+      if ("Notification" in window && "serviceWorker" in navigator) {
+        if (Notification.permission !== "granted") {
+          await Notification.requestPermission();
+        }
+        
+        if (Notification.permission === "granted") {
+          try {
+            const registration = await navigator.serviceWorker.ready;
+            const existingSub = await registration.pushManager.getSubscription();
+            
+            if (!existingSub) {
+              const publicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+              const convertedVapidKey = urlBase64ToUint8Array(publicKey);
+              
+              const newSub = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: convertedVapidKey
+              });
+              
+              await api.post("/users/push-subscription", { subscription: newSub });
+            } else {
+              await api.post("/users/push-subscription", { subscription: existingSub });
+            }
+          } catch (error) {
+            console.log("Error subscribing to push:", error);
+          }
+        }
+      }
+    };
+    
+    initPush();
   }, []);
 
   useEffect(() => {
@@ -111,18 +151,11 @@ export const useSidebar = (setSelectedConversation, setIsMobileOpen) => {
         const targetUser = prevUsers.find((u) => u.id === targetUserId);
         
         if (!isMyMessage && targetUserId !== activeUserId && targetUser) {
-          if ("Notification" in window && Notification.permission === "granted") {
-            try {
-              const audio = new Audio("https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=success-1-6297.mp3");
-              audio.play().catch(e => console.log("Audio play blocked", e));
-              
-              new Notification(targetUser.name, {
-                body: message.text,
-                icon: targetUser.profilePic || "/favicon.ico"
-              });
-            } catch (err) {
-              console.log("Notification error:", err);
-            }
+          try {
+            const audio = new Audio("https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=success-1-6297.mp3");
+            audio.play().catch(e => console.log("Audio play blocked", e));
+          } catch (err) {
+            console.log("Audio error:", err);
           }
         }
 

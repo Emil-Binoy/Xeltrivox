@@ -14,9 +14,10 @@ model User {
   email      String   @unique
   password   String
   profilePic String?
-  status     String   @default("Available")
-  lastSeen   DateTime @default(now())
-  createdAt  DateTime @default(now())
+  status           String   @default("Available")
+  lastSeen         DateTime @default(now())
+  pushSubscription Json?
+  createdAt        DateTime @default(now())
 
   messages      Message[]
   conversations ConversationParticipant[]

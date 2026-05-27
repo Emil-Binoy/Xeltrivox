@@ -170,4 +170,19 @@ const updateProfile = async (req, res) => {
     }
 };
 
-module.exports={getProfile,getUsers,updateProfile}
+const savePushSubscription = async (req, res) => {
+    try {
+        const { subscription } = req.body;
+        
+        await prisma.user.update({
+            where: { id: req.user.id },
+            data: { pushSubscription: subscription }
+        });
+
+        res.status(200).json({ message: "Push subscription saved" });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+module.exports={getProfile,getUsers,updateProfile,savePushSubscription}
