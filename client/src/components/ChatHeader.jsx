@@ -2,9 +2,18 @@ import React, { useState } from "react";
 import { FiMenu, FiX, FiInfo } from "react-icons/fi";
 import Avatar from "./Avatar";
 
-const ChatHeader = ({ selectedConversation, isSelectedUserOnline, setIsMobileOpen }) => {
+const ChatHeader = ({ selectedConversation, isSelectedUserOnline, setIsMobileOpen, typingUsers = [] }) => {
   const user = selectedConversation?.selectedUser;
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  let typingText = "";
+  if (typingUsers.length === 1) {
+    typingText = `${typingUsers[0]} is typing...`;
+  } else if (typingUsers.length === 2) {
+    typingText = `${typingUsers[0]} and ${typingUsers[1]} are typing...`;
+  } else if (typingUsers.length > 2) {
+    typingText = `${typingUsers[0]}, ${typingUsers[1]} and ${typingUsers.length - 2} other(s) are typing...`;
+  }
 
   return (
     <div className="p-5 bg-white dark:bg-[#0d1321]/40 border-b border-slate-200 dark:border-slate-800/60 backdrop-blur-md flex items-center justify-between relative z-10">
@@ -31,11 +40,15 @@ const ChatHeader = ({ selectedConversation, isSelectedUserOnline, setIsMobileOpe
           <h2 className="text-sm font-semibold text-slate-800 dark:text-white tracking-wide truncate">
             {user?.name || "User"}
           </h2>
-          {user?.status && (
+          {typingText ? (
+            <p className="text-[10px] text-emerald-500 dark:text-emerald-400 font-bold truncate leading-none mt-0.5 animate-pulse">
+              {typingText}
+            </p>
+          ) : user?.status ? (
             <p className="text-[10px] text-indigo-500 dark:text-cyan-400/80 font-medium truncate leading-none mt-0.5">
               {user.status}
             </p>
-          )}
+          ) : null}
         </div>
       </div>
 

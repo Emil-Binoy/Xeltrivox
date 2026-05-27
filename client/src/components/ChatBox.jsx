@@ -16,6 +16,7 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => {
   const [activeMenuMessageId, setActiveMenuMessageId] = useState(null);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
+  const [typingUsersMap, setTypingUsersMap] = useState({});
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -70,11 +71,32 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => {
     };
     socket.on("messageDeleted", handleDeletedMessage);
 
+    const handleTyping = ({ conversationId, senderName }) => {
+      setTypingUsersMap((prev) => {
+        const users = prev[conversationId] || [];
+        if (!users.includes(senderName)) {
+          return { ...prev, [conversationId]: [...users, senderName] };
+        }
+        return prev;
+      });
+    };
+    socket.on("typing", handleTyping);
+
+    const handleStopTyping = ({ conversationId, senderName }) => {
+      setTypingUsersMap((prev) => {
+        const users = prev[conversationId] || [];
+        return { ...prev, [conversationId]: users.filter((name) => name !== senderName) };
+      });
+    };
+    socket.on("stopTyping", handleStopTyping);
+
     return () => {
       socket.off("onlineUsers");
       socket.off("messagesRead", handleMessagesRead);
       socket.off("receiveMessage", handleIncomingMessage);
       socket.off("messageDeleted", handleDeletedMessage);
+      socket.off("typing", handleTyping);
+      socket.off("stopTyping", handleStopTyping);
     };
   }, [selectedConversation]);
 
@@ -117,6 +139,7 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => {
             selectedConversation={selectedConversation} 
             isSelectedUserOnline={isSelectedUserOnline} 
             setIsMobileOpen={setIsMobileOpen} 
+            typingUsers={typingUsersMap[selectedConversation?.id] || []}
           />
 
           <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 relative z-10 custom-scrollbar">

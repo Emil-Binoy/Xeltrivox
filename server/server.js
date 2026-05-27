@@ -78,6 +78,28 @@ io.on("connection", (socket) => {
       });
     }
   });
+
+  socket.on("typing", (data) => {
+    const { conversationId, senderName, receiverIds } = data;
+    const ids = Array.isArray(receiverIds) ? receiverIds : [data.receiverId];
+    ids.forEach((id) => {
+      const socketId = onlineUsers[id];
+      if (socketId) {
+        io.to(socketId).emit("typing", { conversationId, senderName });
+      }
+    });
+  });
+
+  socket.on("stopTyping", (data) => {
+    const { conversationId, senderName, receiverIds } = data;
+    const ids = Array.isArray(receiverIds) ? receiverIds : [data.receiverId];
+    ids.forEach((id) => {
+      const socketId = onlineUsers[id];
+      if (socketId) {
+        io.to(socketId).emit("stopTyping", { conversationId, senderName });
+      }
+    });
+  });
 });
 
 const PORT = process.env.PORT || 5000;

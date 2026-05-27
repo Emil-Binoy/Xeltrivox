@@ -35,6 +35,7 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
       try {
         const { data } = await api.get("/users/profile");
         setCurrentUser(data);
+        localStorage.setItem("currentUserName", data.name);
       } catch (error) {
         console.log("Error loading profile:", error);
       }

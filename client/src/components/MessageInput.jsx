@@ -9,6 +9,31 @@ const MessageInput = ({ selectedConversation, replyingTo, setReplyingTo }) => {
   const [isSending, setIsSending] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const pickerRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+
+  const handleTyping = (e) => {
+    setText(e.target.value);
+    
+    if (selectedConversation) {
+      socket.emit("typing", {
+        conversationId: selectedConversation.id,
+        senderName: localStorage.getItem("currentUserName") || "User",
+        receiverId: selectedConversation.selectedUser.id
+      });
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit("stopTyping", {
+          conversationId: selectedConversation.id,
+          senderName: localStorage.getItem("currentUserName") || "User",
+          receiverId: selectedConversation.selectedUser.id
+        });
+      }, 2000);
+    }
+  };
 
   // Close the emoji picker when clicking anywhere outside of it
   useEffect(() => {
@@ -28,6 +53,13 @@ const MessageInput = ({ selectedConversation, replyingTo, setReplyingTo }) => {
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!text.trim() || !selectedConversation || isSending) return;
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    socket.emit("stopTyping", {
+      conversationId: selectedConversation.id,
+      senderName: localStorage.getItem("currentUserName") || "User",
+      receiverId: selectedConversation.selectedUser.id
+    });
 
     try {
       setIsSending(true);
@@ -107,7 +139,7 @@ const MessageInput = ({ selectedConversation, replyingTo, setReplyingTo }) => {
           <input
             type="text"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleTyping}
             disabled={isSending}
             placeholder="Type a message..."
             className="w-full p-3.5 bg-transparent text-sm focus:outline-none text-slate-800 dark:text-slate-100 disabled:opacity-60"
