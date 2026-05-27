@@ -27,12 +27,20 @@ const getProfile=async(req,res)=>{
 
 const getUsers=async(req,res)=>{
     try {
+        const { search } = req.query;
+        let whereClause = {
+            id: { not: req.user.id }
+        };
+
+        if (search && search.trim() !== "") {
+            whereClause.OR = [
+                { username: { contains: search, mode: 'insensitive' } },
+                { name: { contains: search, mode: 'insensitive' } }
+            ];
+        }
+
         const user = await prisma.user.findMany({
-            where:{
-                id:{
-                    not:req.user.id
-                }
-            },
+            where: whereClause,
             select:{
                 id:true,
                 name:true,
