@@ -15,6 +15,7 @@ model User {
   password   String
   profilePic String?
   status     String   @default("Available")
+  lastSeen   DateTime @default(now())
   createdAt  DateTime @default(now())
 
   messages      Message[]

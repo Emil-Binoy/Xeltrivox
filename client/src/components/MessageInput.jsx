@@ -69,11 +69,6 @@ const MessageInput = ({ selectedConversation, replyingTo, setReplyingTo }) => {
         replyToId: replyingTo?.id || null
       });
       
-      socket.emit("sendMessage", {
-        ...data,
-        receiverId: selectedConversation.selectedUser.id
-      });
-      
       setText("");
       setShowEmojiPicker(false);
       if (setReplyingTo) setReplyingTo(null);

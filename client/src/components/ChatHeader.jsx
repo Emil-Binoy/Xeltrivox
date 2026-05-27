@@ -45,6 +45,14 @@ const ChatHeader = ({ selectedConversation, isSelectedUserOnline, setIsMobileOpe
             <p className="text-[10px] text-emerald-500 dark:text-emerald-400 font-bold truncate leading-none mt-0.5 animate-pulse">
               {typingText}
             </p>
+          ) : isSelectedUserOnline ? (
+            <p className="text-[10px] text-emerald-500 dark:text-emerald-400 font-bold truncate leading-none mt-0.5">
+              Online
+            </p>
+          ) : user?.lastSeen ? (
+            <p className="text-[10px] text-indigo-500 dark:text-cyan-400/80 font-medium truncate leading-none mt-0.5">
+              {`Last seen ${new Date(user.lastSeen).toLocaleDateString() === new Date().toLocaleDateString() ? 'today' : new Date(user.lastSeen).toLocaleDateString()} at ${new Date(user.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+            </p>
           ) : user?.status ? (
             <p className="text-[10px] text-indigo-500 dark:text-cyan-400/80 font-medium truncate leading-none mt-0.5">
               {user.status}
@@ -93,7 +101,7 @@ const ChatHeader = ({ selectedConversation, isSelectedUserOnline, setIsMobileOpe
               <div className="w-full border-t border-slate-100 dark:border-slate-800/60 pt-4 flex flex-col items-center space-y-2">
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                   <span className={`w-2 h-2 rounded-full ${isSelectedUserOnline ? "bg-emerald-500 dark:bg-cyan-400 animate-pulse" : "bg-slate-400"}`} />
-                  <span className="font-semibold">{isSelectedUserOnline ? "Online Now" : "Offline"}</span>
+                  <span className="font-semibold">{isSelectedUserOnline ? "Online Now" : (user?.lastSeen ? `Last seen ${new Date(user.lastSeen).toLocaleDateString() === new Date().toLocaleDateString() ? 'today' : new Date(user.lastSeen).toLocaleDateString()} at ${new Date(user.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : "Offline")}</span>
                 </div>
 
                 <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-800/30 rounded-xl max-w-full">

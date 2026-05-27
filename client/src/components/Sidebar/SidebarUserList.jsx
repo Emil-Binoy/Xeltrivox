@@ -45,10 +45,17 @@ const SidebarUserList = ({
                   <span className="text-[10px] font-semibold text-indigo-500/80 dark:text-cyan-400/70 lowercase truncate max-w-[80px] shrink-0">
                     {user.name}
                   </span>
-                  {user.status && user.status !== "Available" && (
+                  {isUserOnline ? (
+                    <span className="text-[9px] text-emerald-500 dark:text-emerald-400 font-medium truncate flex items-center gap-1 min-w-0">
+                      <span className="truncate">Online</span>
+                    </span>
+                  ) : (
                     <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium truncate flex items-center gap-1 min-w-0">
-                      <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700 shrink-0" />
-                      <span className="truncate">{user.status}</span>
+                      <span className="truncate">
+                        {user.lastSeen 
+                          ? `Last seen ${new Date(user.lastSeen).toLocaleDateString() === new Date().toLocaleDateString() ? 'today' : new Date(user.lastSeen).toLocaleDateString()} at ${new Date(user.lastSeen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                          : (user.status && user.status !== "Available" ? user.status : "Offline")}
+                      </span>
                     </span>
                   )}
                 </div>

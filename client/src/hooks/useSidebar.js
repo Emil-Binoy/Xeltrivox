@@ -24,6 +24,12 @@ export const useSidebar = (setSelectedConversation, setIsMobileOpen) => {
   }, [theme]);
 
   useEffect(() => {
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
     const getCurrentUser = async () => {
       try {
         const { data } = await api.get("/users/profile");
@@ -41,6 +47,12 @@ export const useSidebar = (setSelectedConversation, setIsMobileOpen) => {
       try {
         setIsLoading(true);
         const { data } = await api.get(searchQuery.trim() ? `/users?search=${encodeURIComponent(searchQuery)}` : "/users");
+        
+        const newUnreadCounts = {};
+        data.forEach(u => {
+          if (u.unreadCount > 0) newUnreadCounts[u.id] = u.unreadCount;
+        });
+        setUnreadCounts(newUnreadCounts);
         setUsers(data);
       } catch (error) {
         console.log(error);
@@ -85,20 +97,38 @@ export const useSidebar = (setSelectedConversation, setIsMobileOpen) => {
     socket.on("userProfileUpdated", handleProfileUpdate);
 
     const handleLiveMessage = (message) => {
-      const senderId = message.senderId;
+      const isMyMessage = message.senderId === localStorage.getItem("userId");
+      const targetUserId = isMyMessage ? activeUserId : message.senderId;
 
-      if (senderId !== activeUserId) {
+      if (!isMyMessage && targetUserId !== activeUserId) {
         setUnreadCounts((prev) => ({
           ...prev,
-          [senderId]: (prev[senderId] || 0) + 1,
+          [targetUserId]: (prev[targetUserId] || 0) + 1,
         }));
       }
 
       setUsers((prevUsers) => {
-        const targetUser = prevUsers.find((u) => u.id === senderId);
+        const targetUser = prevUsers.find((u) => u.id === targetUserId);
+        
+        if (!isMyMessage && targetUserId !== activeUserId && targetUser) {
+          if ("Notification" in window && Notification.permission === "granted") {
+            try {
+              const audio = new Audio("https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3?filename=success-1-6297.mp3");
+              audio.play().catch(e => console.log("Audio play blocked", e));
+              
+              new Notification(targetUser.name, {
+                body: message.text,
+                icon: targetUser.profilePic || "/favicon.ico"
+              });
+            } catch (err) {
+              console.log("Notification error:", err);
+            }
+          }
+        }
+
         if (!targetUser) return prevUsers;
 
-        const remainingUsers = prevUsers.filter((u) => u.id !== senderId);
+        const remainingUsers = prevUsers.filter((u) => u.id !== targetUserId);
         return [targetUser, ...remainingUsers];
       });
     };

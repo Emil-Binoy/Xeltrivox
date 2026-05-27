@@ -29,20 +29,42 @@ app.use("/api/messages", messageRoutes);
 
 const onlineUsers = {};
 
+const prisma = require("./prisma/client");
+
 app.set("io", io);
 app.set("onlineUsers", onlineUsers);
 
 io.on("connection", (socket) => {
-  socket.on("join", (userId) => {
+  socket.on("join", async (userId) => {
     onlineUsers[userId] = socket.id;
     io.emit("onlineUsers", Object.keys(onlineUsers));
     console.log("user joined:", userId);
+    try {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { status: "Available" }
+      });
+      const updatedUser = await prisma.user.findUnique({ where: { id: userId } });
+      io.emit("userProfileUpdated", updatedUser);
+    } catch (err) {
+      console.log("Error updating status on join:", err);
+    }
   });
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     for (let userId in onlineUsers) {
       if (onlineUsers[userId] === socket.id) {
         delete onlineUsers[userId];
+        try {
+          await prisma.user.update({
+            where: { id: userId },
+            data: { lastSeen: new Date() }
+          });
+          const updatedUser = await prisma.user.findUnique({ where: { id: userId } });
+          io.emit("userProfileUpdated", updatedUser);
+        } catch (err) {
+          console.log("Error updating lastSeen on disconnect:", err);
+        }
       }
     }
     io.emit("onlineUsers", Object.keys(onlineUsers));

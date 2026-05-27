@@ -13,6 +13,7 @@ const getProfile=async(req,res)=>{
                 email:true,
                 profilePic:true,
                 status:true,
+                lastSeen:true,
                 createdAt:true
             }
         })
@@ -39,7 +40,7 @@ const getUsers=async(req,res)=>{
             ];
         }
 
-        const user = await prisma.user.findMany({
+        const users = await prisma.user.findMany({
             where: whereClause,
             select:{
                 id:true,
@@ -47,15 +48,55 @@ const getUsers=async(req,res)=>{
                 username: true,
                 email:true,
                 profilePic:true,
-                status:true
+                status:true,
+                lastSeen:true
             }
-        })
+        });
 
-        res.status(200).json(user)
+        const conversations = await prisma.conversation.findMany({
+            where: {
+                participants: { some: { userId: req.user.id } }
+            },
+            include: {
+                participants: true,
+                messages: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1
+                },
+                _count: {
+                    select: {
+                        messages: {
+                            where: { senderId: { not: req.user.id }, status: { not: 'READ' } }
+                        }
+                    }
+                }
+            }
+        });
+
+        const usersWithExtra = users.map(user => {
+            const conversation = conversations.find(c => 
+                c.participants.some(p => p.userId === user.id)
+            );
+
+            return {
+                ...user,
+                latestMessageAt: conversation?.messages[0]?.createdAt || null,
+                unreadCount: conversation?._count?.messages || 0
+            };
+        });
+
+        usersWithExtra.sort((a, b) => {
+            if (!a.latestMessageAt && !b.latestMessageAt) return 0;
+            if (!a.latestMessageAt) return 1;
+            if (!b.latestMessageAt) return -1;
+            return new Date(b.latestMessageAt) - new Date(a.latestMessageAt);
+        });
+
+        res.status(200).json(usersWithExtra);
     } catch (error) {
         res.status(500).json({
             message:error.message
-        })
+        });
     }
 }
 
@@ -110,6 +151,7 @@ const updateProfile = async (req, res) => {
                 email: true,
                 profilePic: true,
                 status: true,
+                lastSeen: true,
                 createdAt: true
             }
         });

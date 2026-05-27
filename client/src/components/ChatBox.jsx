@@ -61,7 +61,10 @@ const ChatBox = ({ selectedConversation, setIsMobileOpen }) => {
 
     const handleIncomingMessage = (message) => {
       if (selectedConversation && message.conversationId === selectedConversation.id) {
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => {
+          if (prev.some((msg) => msg.id === message.id)) return prev;
+          return [...prev, message];
+        });
       }
     };
     socket.on("receiveMessage", handleIncomingMessage);
