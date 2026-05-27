@@ -30,7 +30,7 @@ function Sidebar({ setSelectedConversation, isMobileOpen, setIsMobileOpen }) {
         ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
       `}
     >
-      <SidebarHeader theme={theme} setTheme={setTheme} />
+      <SidebarHeader theme={theme} setTheme={setTheme} setIsMobileOpen={setIsMobileOpen} />
 
       <SidebarSearch searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
 

@@ -1,11 +1,15 @@
 const prisma = require("../prisma/client");
 const webpush = require("web-push");
 
-webpush.setVapidDetails(
-  "mailto:test@example.com",
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY
-);
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    "mailto:test@example.com",
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+} else {
+  console.warn("VAPID keys not found. Web push notifications are disabled.");
+}
 
 const sendMessage = async (req, res) => {
   try {
@@ -67,7 +71,7 @@ const sendMessage = async (req, res) => {
             select: { pushSubscription: true }
           });
           
-          if (recipient && recipient.pushSubscription) {
+          if (recipient && recipient.pushSubscription && process.env.VAPID_PUBLIC_KEY) {
             const payload = JSON.stringify({
               title: message.sender.name,
               body: message.text,
