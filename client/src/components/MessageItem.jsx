@@ -14,7 +14,7 @@ const MessageItem = ({
   const isMe = msg.senderId === currentUserId || msg.sender?.id === currentUserId;
 
   return (
-    <div className={`flex flex-col ${isMe ? "items-end" : "items-start"} w-full group/msg`}>
+    <div id={`message-${msg.id}`} className={`flex flex-col ${isMe ? "items-end" : "items-start"} w-full group/msg transition-all duration-500`}>
       
       {/* Embedded Quotation Reply Meta Track Header */}
       {msg.replyTo && (
@@ -59,10 +59,20 @@ const MessageItem = ({
           {/* Embedded Visual WhatsApp Quoted Reply Block */}
           {msg.replyTo && (
             <div 
-              className={`mb-2 p-2 rounded-lg text-xs flex flex-col gap-0.5 border-l-4 border-solid max-w-full truncate ${
+              onClick={() => {
+                const el = document.getElementById(`message-${msg.replyTo.id}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  el.classList.add('bg-indigo-50', 'dark:bg-indigo-900/30', 'scale-[1.02]');
+                  setTimeout(() => {
+                    el.classList.remove('bg-indigo-50', 'dark:bg-indigo-900/30', 'scale-[1.02]');
+                  }, 1500);
+                }
+              }}
+              className={`mb-2 p-2 rounded-lg text-xs flex flex-col gap-0.5 border-l-4 border-solid max-w-full truncate cursor-pointer transition-colors ${
                 isMe 
-                  ? "bg-black/15 border-white/40 text-indigo-100" 
-                  : "bg-slate-100 dark:bg-slate-950 border-indigo-600 dark:border-cyan-400 text-slate-500 dark:text-slate-400"
+                  ? "bg-black/15 hover:bg-black/25 border-white/40 text-indigo-100" 
+                  : "bg-slate-100 hover:bg-slate-200 dark:bg-slate-950 dark:hover:bg-slate-900 border-indigo-600 dark:border-cyan-400 text-slate-500 dark:text-slate-400"
               }`}
             >
               <span className={`font-bold tracking-wide uppercase text-[10px] ${isMe ? "text-cyan-200" : "text-indigo-600 dark:text-cyan-400"}`}>
@@ -101,28 +111,40 @@ const MessageItem = ({
         </motion.div>
 
         {/* Option Settings Trays */}
-        {isMe && (
-          <div className="flex items-center gap-1.5 relative shrink-0 flex-row">
-            <button
-              type="button"
-              onClick={() => handleDeleteMessage(msg.id)}
-              className={`p-2 text-red-500 dark:text-red-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm transition-all duration-200 cursor-pointer focus:outline-none shrink-0 ${
-                isMenuOpen ? "flex scale-100 opacity-100" : "hidden scale-90 opacity-0 pointer-events-none"
-              }`}
-              title="Unsend Message"
-            >
-              <FiTrash2 className="w-3.5 h-3.5" />
-            </button>
+        {/* Option Settings Trays */}
+        <div className={`flex items-center gap-1.5 relative shrink-0 flex-row transition-opacity duration-200 ${isMenuOpen ? "opacity-100" : "opacity-0 group-hover/msg:opacity-100"}`}>
+          <button
+            type="button"
+            onClick={() => setReplyingTo(msg)}
+            className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-indigo-500 dark:hover:text-cyan-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm transition-all duration-200 cursor-pointer focus:outline-none shrink-0"
+            title="Reply"
+          >
+            <FiCornerUpLeft className="w-3.5 h-3.5" />
+          </button>
 
-            <button
-              type="button"
-              onClick={() => setActiveMenuMessageId(isMenuOpen ? null : msg.id)}
-              className="text-slate-400 dark:text-slate-500" 
-            >
-              <FiMoreVertical className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
+          {isMe && (
+            <>
+              <button
+                type="button"
+                onClick={() => handleDeleteMessage(msg.id)}
+                className={`p-1.5 text-red-500 dark:text-red-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm transition-all duration-200 cursor-pointer focus:outline-none shrink-0 ${
+                  isMenuOpen ? "flex scale-100 opacity-100" : "hidden scale-90 opacity-0 pointer-events-none"
+                }`}
+                title="Unsend Message"
+              >
+                <FiTrash2 className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveMenuMessageId(isMenuOpen ? null : msg.id)}
+                className="text-slate-400 dark:text-slate-500" 
+              >
+                <FiMoreVertical className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

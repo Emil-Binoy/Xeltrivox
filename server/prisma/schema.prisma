@@ -54,7 +54,10 @@ model Message {
   conversationId String
   status         MessageStatus @default(SENT) 
   createdAt      DateTime      @default(now())      
+  replyToId      String?
 
   sender       User         @relation(fields: [senderId], references: [id])
   conversation Conversation @relation(fields: [conversationId], references: [id])
+  replyTo      Message?     @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies      Message[]    @relation("MessageReplies")
 }

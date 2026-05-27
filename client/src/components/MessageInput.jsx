@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import api from "../services/api";
-import { FiSend, FiLoader, FiSmile } from "react-icons/fi";
+import { FiSend, FiLoader, FiSmile, FiX } from "react-icons/fi";
 import socket from "../socket";
 import EmojiPicker from "emoji-picker-react";
 
-const MessageInput = ({ selectedConversation }) => {
+const MessageInput = ({ selectedConversation, replyingTo, setReplyingTo }) => {
   const [text, setText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -33,7 +33,8 @@ const MessageInput = ({ selectedConversation }) => {
       setIsSending(true);
       const { data } = await api.post("/messages", { 
         conversationId: selectedConversation.id, 
-        text 
+        text,
+        replyToId: replyingTo?.id || null
       });
       
       socket.emit("sendMessage", {
@@ -43,6 +44,7 @@ const MessageInput = ({ selectedConversation }) => {
       
       setText("");
       setShowEmojiPicker(false);
+      if (setReplyingTo) setReplyingTo(null);
     } catch (error) {
       console.log(error);
     } finally {
@@ -63,6 +65,27 @@ const MessageInput = ({ selectedConversation }) => {
             width={320}
             height={400}
           />
+        </div>
+      )}
+
+      {/* REPLY PREVIEW BANNER */}
+      {replyingTo && (
+        <div className="mb-2 bg-slate-100 dark:bg-slate-800/80 rounded-xl p-3 border-l-4 border-indigo-500 dark:border-cyan-500 flex items-center justify-between shadow-sm animate-fade-in relative overflow-hidden">
+          <div className="flex flex-col truncate pr-4">
+            <span className="text-xs font-bold text-indigo-600 dark:text-cyan-400 mb-0.5">
+              Replying to {replyingTo.senderId === localStorage.getItem("userId") ? "yourself" : replyingTo.sender?.name || "User"}
+            </span>
+            <span className="text-sm text-slate-600 dark:text-slate-300 truncate italic">
+              {replyingTo.text}
+            </span>
+          </div>
+          <button 
+            type="button"
+            onClick={() => setReplyingTo(null)}
+            className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full text-slate-500 dark:text-slate-400 transition-colors focus:outline-none"
+          >
+            <FiX className="w-4 h-4" />
+          </button>
         </div>
       )}
 

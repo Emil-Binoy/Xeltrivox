@@ -3,7 +3,7 @@ const prisma = require("../prisma/client");
 const sendMessage = async (req, res) => {
   try {
     const senderId = req.user.id;
-    const { conversationId, text } = req.body;
+    const { conversationId, text, replyToId } = req.body;
 
     if (!text?.trim()) {
       return res.status(400).json({
@@ -16,6 +16,7 @@ const sendMessage = async (req, res) => {
         text,
         senderId,
         conversationId,
+        replyToId: replyToId || null,
       },
       include: {
         sender: {
@@ -25,6 +26,16 @@ const sendMessage = async (req, res) => {
             email: true,
           },
         },
+        replyTo: {
+          select: {
+            id: true,
+            text: true,
+            senderId: true,
+            sender: {
+              select: { name: true }
+            }
+          }
+        }
       },
     });
 
@@ -71,6 +82,16 @@ const getMessages = async (req, res) => {
         sender: {
           select: { id: true, name: true, email: true },
         },
+        replyTo: {
+          select: {
+            id: true,
+            text: true,
+            senderId: true,
+            sender: {
+              select: { name: true }
+            }
+          }
+        }
       },
       orderBy: { createdAt: "asc" },
     });
