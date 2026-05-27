@@ -112,7 +112,7 @@ const MessageItem = ({
 
         {/* Option Settings Trays */}
         {/* Option Settings Trays */}
-        <div className={`flex items-center gap-1.5 relative shrink-0 flex-row transition-opacity duration-200 ${isMenuOpen ? "opacity-100" : "opacity-0 group-hover/msg:opacity-100"}`}>
+        <div className={`flex items-center gap-1.5 relative shrink-0 flex-row transition-opacity duration-200 ${isMenuOpen ? "opacity-100" : " group-hover/msg:opacity-100"}`}>
           <button
             type="button"
             onClick={() => setReplyingTo(msg)}

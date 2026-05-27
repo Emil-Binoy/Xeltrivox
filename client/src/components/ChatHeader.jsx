@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { FiMenu, FiX, FiInfo } from "react-icons/fi";
 import Avatar from "./Avatar";
 
@@ -62,22 +63,22 @@ const ChatHeader = ({ selectedConversation, isSelectedUserOnline, setIsMobileOpe
       </button>
 
       {/* Beautiful read-only details modal/drawer overlay */}
-      {isDetailOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
-          <div className="w-full max-w-sm bg-white dark:bg-[#0d1321] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-scaleIn">
+      {isDetailOpen && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-fadeIn">
+          <div className="w-full max-w-sm bg-white dark:bg-[#0d1321] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-scaleIn relative">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800/60 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/40">
               <span className="text-[10px] font-bold tracking-widest text-indigo-500 dark:text-cyan-400 uppercase">
                 User Details
               </span>
               <button
                 onClick={() => setIsDetailOpen(false)}
-                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 transition-all cursor-pointer"
+                className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 transition-all cursor-pointer z-10 relative"
               >
                 <FiX className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <div className="p-6 flex flex-col items-center text-center space-y-4">
+            <div className="p-6 flex flex-col items-center text-center space-y-4 relative z-10">
               <Avatar user={user} size="xl" isOnline={isSelectedUserOnline} showOnlineStatus={true} />
               
               <div className="space-y-1">
@@ -106,16 +107,17 @@ const ChatHeader = ({ selectedConversation, isSelectedUserOnline, setIsMobileOpe
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-850 flex justify-center">
+            <div className="p-4 bg-slate-50 dark:bg-slate-900/30 border-t border-slate-200 dark:border-slate-850 flex justify-center relative z-10">
               <button
                 onClick={() => setIsDetailOpen(false)}
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white text-xs font-bold rounded-xl shadow-md active:scale-95 transition-all cursor-pointer"
+                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 dark:bg-cyan-500 dark:hover:bg-cyan-600 text-white text-xs font-bold rounded-xl shadow-md active:scale-95 transition-all cursor-pointer relative z-20"
               >
                 Close Details
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
