@@ -69,7 +69,7 @@ const Login = () => {
 
         <form onSubmit={login} className="space-y-5">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold tracking-widest text-slate-400 uppercase px-1">
+            <label htmlFor="identifier" className="text-[10px] font-bold tracking-widest text-slate-400 uppercase px-1">
               Email or Username
             </label>
             <div className="relative flex items-center bg-slate-900/90 border border-slate-800 rounded-xl focus-within:border-cyan-500/50 focus-within:shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all duration-300">
@@ -77,6 +77,7 @@ const Login = () => {
                 <FiMail className="w-4 h-4" />
               </span>
               <input
+                id="identifier"
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
@@ -89,7 +90,7 @@ const Login = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold tracking-widest text-slate-400 uppercase px-1">
+            <label htmlFor="password" className="text-[10px] font-bold tracking-widest text-slate-400 uppercase px-1">
               Password
             </label>
             <div className="relative flex items-center bg-slate-900/90 border border-slate-800 rounded-xl focus-within:border-cyan-500/50 focus-within:shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all duration-300">
@@ -97,6 +98,7 @@ const Login = () => {
                 <FiLock className="w-4 h-4" />
               </span>
               <input
+                id="password"
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

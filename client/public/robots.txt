@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Google Search Console Indexing
+Sitemap: https://xeltrivox.vercel.app/sitemap.xml
